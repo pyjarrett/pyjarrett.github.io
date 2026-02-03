@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Preventing unordered list indentation in Vim" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Vim, Markdown, and Unordered List Indentation</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="vim-markdown-and-unordered-list-indentation">Vim, Markdown, and Unordered List Indentation</h1>
+<p>I enjoy writing in Vim and neovim, but I&apos;ve been seeing this curious thing when writing unordered lists.</p>
+<p>After writing a unordered line, when I press enter to go to the next line, it indents.</p>
+<div class="code-block">* This is a unordered line
+                          ^--- cursor starts here
+
+  ^--- cursor position after pressing &quot;enter&quot;
+</div>
+<p>When writing long unordered lines this is great!  However, this isn&apos;t what I want when making many short unordered lists, such as when copying lists from paper notes.</p>
+<p>My initial thought was that this might be related to <code>autoindent</code>, but it turns out to be related to something called <code>formatoptions</code> and how it changes handling of comments.</p>
+<p><code>formatoptions</code> changes how automatic formatting operates in Vim based on character flags which can be individually enabled or disabled.</p>
+<h2 id="repurposed-code-comments">Repurposed code comments</h2>
+<p><code>formatoptions</code> works because Vim actually treats unordered lists like code comments.  It has a feature where it will automatically continue comment styles on the next line for you, which is helpful to reformat code comments with <code>gqq</code>.</p>
+<p>Where does it specify the comment types though?</p>
+<div class="code-block">set comments
+</div>
+<p>The output isn&apos;t immediately clear, but we can look at <code>help format-comments</code> to decipher the output:</p>
+<div class="code-block">fb:*,fb:-,fb:+,n:&gt;
+</div>
+<p>This shows <code>*</code>, <code>-</code>, and <code>+</code> has having the initial comment string only on the first line (&quot;f&quot;), and must be followed by a blank (&quot;b&quot;).  Blockquotes start with <code>&gt;</code> and can be nested (&quot;n&quot;).</p>
+<h2 id="formatoptions"><code>formatoptions</code></h2>
+<p><code>help formatoptions</code> redirects us to <code>fo-table</code> which describes what each setting does.  There&apos;s two of particular interest in this case.</p>
+<div class="code-block">r    Automatically insert the current comment leader after hitting
+    &lt;Enter&gt; in Insert mode.
+
+o    Automatically insert the current comment leader after hitting &apos;o&apos; or
+    &apos;O&apos; in Normal mode.  In case comment is unwanted in a specific place
+    use CTRL-U to quickly delete it. |i_CTRL-U|
+</div>
+<p>By removing the <code>r</code> and <code>o</code> settings, the cursor now goes back to the beginning of line, simplifying the creation of quick lists for me.</p>
+<div class="code-block">set formatoptions-=ro
+</div>
+<div class="code-block">* This is a unordered line
+                          ^--- cursor starts here
+
+^--- cursor position after pressing &quot;enter&quot; is now at the start of the line
+</div>
+<h2 id="disabling-at-startup">Disabling at startup</h2>
+<p>I don&apos;t usually use bullet points for long content, so I disable this when Vim sees a Markdown file type.</p>
+<div class="code-block">autocmd FileType markdown set formatoptions-=ro
+</div>
+<h2 id="other-posts-i-found-about-this">Other posts I found about this</h2>
+<p>Another blogger looked into why numbered lists didn&apos;t format in a desired way when using <code>gqq</code>, you might want to <a href="https://blog.siddharthkannan.in/vim/configuration/2019/11/02/format-list-pat-and-vim/">have a look</a>.  This author looks at <code>formatlistpat</code> and its effects.</p>
+</p>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

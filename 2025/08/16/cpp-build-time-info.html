@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Leveraging templates with the compiler and linker to see type and value info" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Inspecting Type and Value Info at C++ Build Time</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#inspecting-type-and-value-info-at-c-compile-time">Inspecting Type and Value Info at C++ Compile Time</a></li>
+<ul class="outline">
+<li><a href="#inspecting-types">Inspecting Types</a></li>
+    </ul>
+<li><a href="#when-compiler-messages-are-too-helpful">When Compiler Messages are too Helpful</a></li>
+<li><a href="#value-inspection">Value inspection</a></li>
+<ul class="outline">
+<li><a href="#ide-support">IDE support</a></li>
+    </ul>
+<li><a href="#other-methods">Other Methods</a></li>
+<ul class="outline">
+<li><a href="#msvc-at-compile-time">MSVC, at compile time</a></li>
+<li><a href="#at-runtime-msvc-clang-or-g">At runtime, MSVC, Clang or G++</a></li>
+    </ul>
+</ul>
+</nav>
+<hr />
+<h1 id="inspecting-type-and-value-info-at-c-compile-time">Inspecting Type and Value Info at C++ Compile Time</h1>
+<p>Templates can be used to smuggle out compile-time information via error messaging, and you can do this for type, size and alignment information regardless of your development environment.</p>
+<p>Since this leverages the build tooling, this works in a variety of development environments, from VIM on a remote Linux server, to Windows with Visual Studio. It also works with types in templates, wrapped in multiple <code>using</code>, stringified together with <code>##</code>, and with multiple macro layers like handle types, where IDEs can get confused.</p>
+<h2 id="inspecting-types">Inspecting Types</h2>
+<p>The idea is that you generate an error which results in the error messaging being embedded in the type information for a template.  This works with MSVC, Clang, and G++.</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span>... T<span class="sym">&gt;</span>
+<span class="kw">struct</span> InspectType;</div>
+<p>This is an <a href="https://learn.microsoft.com/en-us/cpp/c-language/incomplete-types">incomplete type</a>.  This means when you try to make a value of that type, you get an error at compile time.</p>
+<p>Here&apos;s a simple example:</p>
+<div class="code-block">InspectType<span class="sym">&lt;</span><span class="kw">decltype</span>(<span class="val">5</span> <span class="sym">*</span> <span class="val">100</span>ul)<span class="sym">&gt;</span> expr;</div>
+<p>This gives a reasonable message with the type at compile time.  Even if you&apos;re deep in a change which doesn&apos;t build yet, you can still get type information for <code>auto</code> variables, template types, and expressions.</p>
+<div class="code-block">D<span class="sym">:</span>\dev\cpp\inspector\main.cpp(<span class="val">49</span>)<span class="sym">:</span> error C2079<span class="sym">:</span> &apos;expr&apos; uses undefined <span class="kw">struct</span> &apos;InspectType<span class="sym">&lt;</span><span class="kw">unsigned</span> <span class="ty">long</span><span class="sym">&gt;</span>&apos;</div>
+<p>What you&apos;re looking for is that response nestled as the template parameter in <code>InspectType&lt;...&gt;</code>: <code>unsigned long</code>.</p>
+<h1 id="when-compiler-messages-are-too-helpful">When Compiler Messages are too Helpful</h1>
+<p>C++ compilers have been working on improving messages and sometimes the messages are a bit too helpful.  This is possible when dealing with templates hidden behind a type alias.</p>
+<div class="code-block">std<span class="sym">:</span><span class="sym">:</span>string a;
+InspectTypes<span class="sym">&lt;</span>std<span class="sym">:</span><span class="sym">:</span>string<span class="sym">&gt;</span> it1;
+InspectTypes<span class="sym">&lt;</span><span class="kw">decltype</span>(a)<span class="sym">&gt;</span> it2;</div>
+<p><code>std::string</code> is a bit more complicated than MSVC leads on here:</p>
+<div class="code-block">D:\dev\cpp\inspector\main.cpp(88): error C2079: &apos;it1&apos; uses undefined struct &apos;InspectTypes&lt;std::string&gt;&apos;
+D:\dev\cpp\inspector\main.cpp(89): error C2079: &apos;it2&apos; uses undefined struct &apos;InspectTypes&lt;std::string&gt;&apos;
+</div>
+<p>Clang provides a bit more info, but not the entire story as well:</p>
+<div class="code-block"> $ clang++ main.cpp --std=c++20
+main.cpp:88:29: error: implicit instantiation of undefined template &apos;InspectTypes&lt;std::basic_string&lt;char&gt;&gt;&apos;
+                InspectTypes&lt;std::string&gt; it1;
+                                          ^
+</div>
+<p>Usually, this sort of shorter, more direct messaging is exactly what we want! However, when debugging sometimes we want to see the whole lot of information.</p>
+<p>Inspection can be delayed until linking with this gadget:</p>
+<div class="code-block"><span class="kw">template</span><span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="kw">struct</span> Inspector {
+    <span class="kw">static</span> <span class="ty">void</span> type();
+};</div>
+<p>This produces a spammier and more difficult to read message, but it works as a fallback when IDEs and other methods fail.  What happens here is the template declares a function and because there&apos;s not one implemented, the linker will generate an error with the type information.</p>
+<p>MSVC:</p>
+<div class="code-block">main.cpp.obj : error LNK2019: unresolved external symbol &quot;public: static void __cdecl Inspector&lt;class std::basic_string&lt;char,struct std::char_traits&lt;char&gt;,class std::allocator&lt;char&gt; &gt; &gt;::type(void)&quot; (?type@?$Inspector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@@SAXXZ) referenced in function main
+</div>
+<p>Hidden in this is our type: <code>class std::basic_string&lt;char,struct std::char_traits&lt;char&gt;,class std::allocator&lt;char&gt; &gt;</code>.</p>
+<p>Clang:</p>
+<div class="code-block"> $ clang++ main.cpp --std=c++20
+/usr/bin/ld: /tmp/main-725aec.o: in function `main&apos;:
+main.cpp:(.text+0x85): undefined reference to `Inspector&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;::type()&apos;
+</div>
+<p>Hidden in this is our type <code>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;</code>.</p>
+<p>It&apos;s not a preferred way to go about getting this information, but it&apos;s available when other methods fail.</p>
+<h1 id="value-inspection">Value inspection</h1>
+<p>Using non-type template parameters, you can use incomplete types to also see compile-time values.</p>
+<div class="code-block"><span class="kw">template</span><span class="sym">&lt;</span><span class="ty">int</span>... V<span class="sym">&gt;</span>
+<span class="kw">struct</span> InspectValues;</div>
+<p>This allows seeing size and alignment info and prevents the need to guess, such as when setting up <code>static_assert</code>s to verify type sizes or when rearranging fields to reduce padding.</p>
+<div class="code-block">InspectValues<span class="sym">&lt;</span><span class="kw">sizeof</span>(Foo), <span class="kw">alignof</span>(Foo)<span class="sym">&gt;</span> ivi;</div>
+<p>With MSVC this gives the message:</p>
+<div class="code-block">D:\dev\cpp\inspector\main.cpp(66): error C2079: &apos;ivi&apos; uses undefined struct &apos;InspectValues&lt;16,8&gt;&apos;
+</div>
+<p>And for Clang:</p>
+<div class="code-block">main.cpp:67:43: error: implicit instantiation of undefined template &apos;InspectValues&lt;16, 8&gt;&apos;
+        InspectValues&lt;sizeof(Foo), alignof(Foo)&gt; ivi;
+</div>
+<p>G++ has a similar message:</p>
+<div class="code-block">main.cpp: In function ‘int main()’:
+main.cpp:67:50: error: aggregate ‘InspectValues&lt;16, 8&gt; ivi’ has incomplete type and cannot be defined
+   67 |         InspectValues&lt;sizeof(Foo), alignof(Foo)&gt; ivi;
+</div>
+<h2 id="ide-support">IDE support</h2>
+<p>This is a fallback method for me when IDE methods fail.</p>
+<p>Visual Studio and CLion both report size info for me when hovering a type.  Visual Studio also shows alignment and has a &quot;Memory Layout&quot; view to see even more in-depth information and padding gaps in your types.</p>
+<p><figure><img src="/images/cpp/padding_gap.png" alt="Example memory layout showing a padding gap"/><figcaption>Example memory layout showing a padding gap</figcaption></figure></p>
+<h1 id="other-methods">Other Methods</h1>
+<h2 id="msvc-at-compile-time">MSVC, at compile time</h2>
+<p>With MSVC, you can use this more simple approach, though it doesn&apos;t work with Clang or G++:</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="ty">void</span> printType() {
+    <span class="kw">static_assert</span>(<span class="val">false</span>, __FUNCSIG__);
+}</div>
+<p>Then inside code:</p>
+<div class="code-block">printType<span class="sym">&lt;</span>std<span class="sym">:</span><span class="sym">:</span>string<span class="sym">&gt;</span>();</div>
+<p>The result here is also very direct:</p>
+<div class="code-block">D:\dev\cpp\inspector\main.cpp(41): error C2338: static_assert failed: &apos;void __cdecl printType&lt;class std::basic_string&lt;char,struct std::char_traits&lt;char&gt;,class std::allocator&lt;char&gt; &gt;&gt;(void)&apos;
+</div>
+<h2 id="at-runtime-msvc-clang-or-g">At runtime, MSVC, Clang or G++</h2>
+<p>If you can wait until runtime, you can use this function:</p>
+<div class="code-block"><span class="kw">template</span><span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="ty">void</span> runtimePrintType() {
+#<span class="kw">if</span> _MSC_VER
+    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __FUNCSIG__ <span class="sym">&lt;</span><span class="sym">&lt;</span> &apos;\n&apos;;
+#<span class="kw">else</span>
+    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __PRETTY_FUNCTION__ <span class="sym">&lt;</span><span class="sym">&lt;</span> &apos;\n&apos;;
+#endif
+}</div>
+<p>MSVC:</p>
+<div class="code-block">void __cdecl runtimePrintType&lt;class std::basic_string&lt;char,struct std::char_traits&lt;char&gt;,class std::allocator&lt;char&gt; &gt;&gt;(v
+oid)
+</div>
+<p>Clang:</p>
+<div class="code-block">void runtimePrintType() [T = std::basic_string&lt;char&gt;]
+</div>
+<p>G++:</p>
+<div class="code-block">void runtimePrintType() [with T = std::__cxx11::basic_string&lt;char&gt;]
+</div>
+</p>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

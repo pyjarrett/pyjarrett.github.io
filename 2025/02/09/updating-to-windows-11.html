@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Learning about TPMs, MBR, CSM, and GPT to upgrade to Windows 11" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Updating to Windows 11</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#my-journey-updating-to-windows-11">My journey updating to Windows 11</a></li>
+<ul class="outline">
+<li><a href="#tpm">TPM</a></li>
+<li><a href="#disabling-csm-and-back-again">Disabling CSM and back again</a></li>
+<li><a href="#from-mbr-to-gpt">From MBR to GPT</a></li>
+    </ul>
+<li><a href="#what-happened">What happened?</a></li>
+<li><a href="#updating-the-updates">Updating the updates</a></li>
+<li><a href="#result">Result</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="my-journey-updating-to-windows-11">My journey updating to Windows 11</h1>
+<p>My primary desktop at home has run Windows 10 Pro since 2021, and I self-host some services locally at home on Linux. After doing a month-long test run of KDE Plasma from my Linux box, I&apos;d been considering swapping this PC to Linux as well.  However, I like to develop on Windows and Linux to learn about cross-platform compatibility issues, and I build my projects with MSVC, Clang and GCC.  I&apos;ve been watching the Windows 10 end-of-line date approach and decided to finally upgrade.</p>
+<p>The specs were good when it was built and I upgraded pieces over time - Ryzen 5950x, RX 6800 XT, 64 GB of RAM so upgrading to Windows 11 should be easy. Right?</p>
+<h2 id="tpm">TPM</h2>
+<p>PC Health Check says that it met all requirements except using <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/bringup/secure-boot">Secure Boot</a>, which is part of the <a href="https://uefi.org/specs/UEFI/2.9_A/32_Secure_Boot_and_Driver_Signing.html">UEFI specification</a>. So, that needed to be set up.  A little bit of googling later, and it turns out I  need to ensure I have the right TPM.  A <a href="https://en.wikipedia.org/wiki/Trusted_Platform_Module">TPM</a> is a special piece of hardware (or software) Windows can use to ensure only trusted (signed) software and firmware components are run.</p>
+<p>From admin powershell:</p>
+<div class="code-block">tpm.msc
+</div>
+<p>My TPM is spec 2.0, so it&apos;s ready to go.</p>
+<blockquote>
+    <p>tpm.msc is a <a href="https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mmc/mmc-3.0/ms692748(v=vs.85)">&quot;snap-in&quot; for Microsoft Management Console (MMC)</a>. It&apos;s an program which interacts with MMC to do some administration task.</p>
+</blockquote>
+</p>
+<h2 id="disabling-csm-and-back-again">Disabling CSM and back again</h2>
+<p>A bit more research and it turns out I need to disable <a href="https://en.wikipedia.org/wiki/UEFI#CSM_booting">CSM</a> in UEFI firmware. &quot;UEFI firmware&quot; often still gets called &quot;BIOS,&quot; but technically these BIOS is a different, older system.</p>
+<p>I&apos;m not entirely certain why this box uses CSM.  Maybe I screwed up somewhere when I set up this box?  So I hop into UEFI firmware and disable it. The PC now boots directly into UEFI firmware and not into Windows.  I check the settings again and reboot and it boots directly into UEFI firmware again and it no longer sees any bootable devices.</p>
+<p>Ok, so that broke something, and I should revert.  I enable CSM and ... the PC doesn&apos;t boot into Windows, it boots straight into UEFI firmware.  Did I save the settings?  Check CSM enabled and try it again, and it boots directly into UEFI firmware again.  That&apos;s not good.  It still doesn&apos;t see any bootable devices.</p>
+<blockquote>
+    <p><code>&lt;chuckles&gt;</code> I&apos;m in danger</p>
+</blockquote>
+<p>Why doesn&apos;t it see bootable devices after reverting the setting?  Did it somehow bork something on the Windows side?  In hindsight it seems ridiculous that I checked this, but it&apos;s part of the story, so it&apos;s here anyways.</p>
+<p>I plug in the Windows 10 install USB that I still have for this box, and try to use the tool there which should fix Windows startup.  That doesn&apos;t work. There&apos;s also no restore point available to revert back to - maybe that would work and it&apos;s my failing for not ensuring that&apos;s setup, and I should do that in the future?</p>
+<p>I could just directly reinstall Windows 10 at this point. I also have two drives in this machine, one for the OS and another separate one for data, and I also got an external drive a week or so ago to back everything up from that secondary drive.</p>
+<p>I&apos;m tempted to just ditch the upgrade and switch this box to Linux.  There is an option to use a specialized command prompt, which reminds me of the one from grub, so maybe there&apos;s a way forward from there?</p>
+<p>Another look at UEFI firmware and I see an option to load profiles.  Interesting, it lets me load profiles from disk, and is able to view the contents of the two drives I have installed in the box, and I can see the boot partition.  So there&apos;s something else weird going on here.</p>
+<p>A few more searches on my phone and I find that this motherboard&apos;s CSM setting is silently linked to the secure boot setting which I need to disable at the same time as reenabling CSM, which restores a working machine.  No progress on getting secure boot to work, but at least the box boots into a working state again.</p>
+<p>There&apos;s definitely a penguin beckoning me to install Linux instead.</p>
+<h2 id="from-mbr-to-gpt">From MBR to GPT</h2>
+</p>
+<p>Poking around a bit and I stumble upon a reference to MBR and GPT effects on system startup.  Then I find an article describing how Windows boot can use either <a href="https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-biosmbr-based-hard-drive-partitions">MBR</a> or <a href="https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions">GPT</a>, and <a href="https://www.windowscentral.com/how-convert-mbr-disk-gpt-move-bios-uefi-windows-10">describes how to switch from MBR to GPT</a>. MBR is old school and GPT is the new thing I should be using if I&apos;m not.  Am I using it?</p>
+<p>Checking the volume via Disk Management tool, from admin powershell:</p>
+<div class="code-block">diskmgmt.msc
+</div>
+<blockquote>
+    <p>This is another &quot;snap-in&quot; for MMC!</p>
+</blockquote>
+<p>The UI of this tool is sneaky and doesn&apos;t like to reveal its secrets. I have to read &quot;Properties&quot; from the Disk and then Volume and not the partition itself, and it turns out I do in fact have an MBR.</p>
+<p> There&apos;s a neat tool called <a href="https://learn.microsoft.com/en-us/windows/deployment/mbr-to-gpt">mbr2gpt.exe</a> that the Windows Central article mentions, which lets me convert my MBR to GPT.   The article has you go through <code>Settings</code> &gt; <code>Update and Security</code> &gt; <code>Recovery</code> and then into <code>Advanced options</code> to a command prompt, but <code>mbt2gpt</code> also looks available through an admin powershell:</p>
+<div class="code-block">mbr2gpt /validate /allowFullOS
+mbr2gpt /convert /allowFullOS
+</div>
+<p>Converted!  So, did it work?</p>
+<p>Back into UEFI firmware, disable CSM and enable secure boot manually this time.  While I&apos;m prepared and willing to gift this PC to the penguin, it boots into Windows 10.</p>
+<p>I run PC Health Check again, and it says this PC supports Windows 11 now! Victory!</p>
+<h1 id="what-happened">What happened?</h1>
+<p>Way back when I built my PC, I must have set up my PC to create an old-school Master Boot Record (MBR) instead of using a newer GPT partition.  This PC has multiple disks, the smaller (a small 1TB NVMe stick) one I set up to be OS and install programs only.  Since it&apos;s a smaller storage I didn&apos;t hit the MBR maximum disk size of 2 TB to notice.</p>
+<p>UEFI supports booting MBR-partitioned disks with the &quot;Capability Support Module&quot; (CSM) which I was using.  When I disabled this, the boot process saw no GPT partitioned drives to boot.</p>
+<p>MBR is incompatible with secure boot.  I might have missed it, but I didn&apos;t see any messaging indicating that I was straying into danger here, and the instructions I found didn&apos;t say anything about having to possibly convert the boot drive from MBR to GPT.</p>
+<p>When I reenabled CSM and didn&apos;t realize that Secure Boot enabled, no bootable disks could be found.</p>
+<h1 id="updating-the-updates">Updating the updates</h1>
+<p>It looks like Windows 11 is installed via the normal update mechanism, and I&apos;m not allowed to upgrade until my Windows 10 version is fully up-to-date, so I install the pending update.  After this, there&apos;s still no Windows 11 update there yet, but there is a Visual Studio pending update, so I grab that one too since I&apos;ll probably want it later during development anyways.  A reboot later and the update tool just shows me as &quot;Up to date&quot; and there&apos;s no option to update to Windows 11.</p>
+<p> <a href="https://support.microsoft.com/en-us/windows/ways-to-install-windows-11-e0edbbfb-cfc5-4011-868b-2ce77ac7c70e">The page I found</a> recommends using the update tool to update and since I&apos;ve ignored three full screen ads on my PC to update to Windows 11, I&apos;m a little confused why it doesn&apos;t show up there.  The Windows 11 page tells me that I could just buy a new PC to upgrade to Windows 11 if my current one doesn&apos;t support it.  I could pitch that idea to my wife if I wanted to sleep on the couch.</p>
+<p> I find another tool called <a href="https://www.microsoft.com/en-us/software-download/windows11">Installation Assistant</a> that can be used to update instead.  I grab that and it seems to be progressing.  At around 86% I accidentally hit escape after clicking that window -- I meant to click the window next to it.  A notification pops up and disappears.  Is it continuing?  I look around task manager and don&apos;t see anything, so maybe it&apos;s done? I reboot and I&apos;m back in Windows 10.</p>
+<p>I try the installation assistant again and it seems to stall out at 86% again, but then finishes up and asks to restart now or later.  Restart now and be done!  After 15 or so seconds, the system reboots and it shows and updating dial of Windows 11 updates before it finally boots into Windows 11.</p>
+<h1 id="result">Result</h1>
+<p>I haven&apos;t noticed much functional difference in my day-to-day usage between Windows 10 and Windows 11.  Granted I also have a dedicated Linux box for Linux development so I don&apos;t use WSL.</p>
+<p>A big win (no pun intended) in usability is <a href="https://www.microsoft.com/en-us/windows/learning-center/organize-screen-with-snap-layouts">snap layouts</a>. <a href="https://learn.microsoft.com/en-us/windows/terminal/">Windows Terminal</a> also comes installed by default. A huge regression is that the taskbar can only be on the bottom of the screen, which makes the effective widescreen dimensions without taskbar hiding even thinner.</p>
+<p>After upgrading to Windows 11 I have only experienced one problem.  One Windows update didn&apos;t work properly and it repeatedly had to be undone by the OS. This issue continued despite reinstalling critical components via Windows Update.</p>
+<p>I cleared the update cache, ran DISM (Deployment Image Service and Management Tool) and SFC (System File Checker) scans, and reinstalled critical components via Windows Update again, which fixed the issue.</p>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://en.wikipedia.org/wiki/UEFI#CSM_booting">Wikipedia: UEFI: CSM booting</a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions">GPT-based hardware partitions</a></li>
+<li>
+<a href="https://www.microsoft.com/en-us/software-download/windows11">Installation assistant</a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-biosmbr-based-hard-drive-partitions">MBR-based hardware partitions</a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows/deployment/mbr-to-gpt"><code>mbr2gpt</code></a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mmc/mmc-3.0/ms692748(v=vs.85)">MMC Terminology</a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/bringup/secure-boot">Secure boot</a></li>
+<li>
+<a href="https://uefi.org/specs/UEFI/2.9_A/32_Secure_Boot_and_Driver_Signing.html">UEFI Spec: Secure boot</a></li>
+<li>
+<a href="https://www.microsoft.com/en-us/windows/learning-center/organize-screen-with-snap-layouts">How to organize your screen with Snap layouts</a></li>
+<li>
+<a href="https://support.microsoft.com/en-us/windows/ways-to-install-windows-11-e0edbbfb-cfc5-4011-868b-2ce77ac7c70e">Ways to install Windows 11</a></li>
+<li>
+<a href="https://www.windowscentral.com/how-convert-mbr-disk-gpt-move-bios-uefi-windows-10">Windows Central: How to convert MBR to GPT drive to switch BIOS to UEFI on Windows 10</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/Trusted_Platform_Module">Wikipedia: TPM</a></li>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows/terminal/">What is Windows Terminal?</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Building Alire on Raspberry Pi 5" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ada on the Raspberry Pi 5</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#ada-on-the-raspberry-pi-5">Ada on the Raspberry Pi 5</a></li>
+<li><a href="#alire-from-the-package-manager-apt">Alire from the Package Manager (apt)</a></li>
+<ul class="outline">
+<li><a href="#making-alire-1-2-from-apt-work">Making Alire 1.2 from apt work</a></li>
+    </ul>
+<li><a href="#getada-dev">getada.dev</a></li>
+<li><a href="#building-alire-from-source">Building Alire from Source</a></li>
+<li><a href="#what-symbols-were-missing">What symbols were missing?</a></li>
+<li><a href="#remarks">Remarks</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="ada-on-the-raspberry-pi-5">Ada on the Raspberry Pi 5</h1>
+<p>Someone gave me a <a href="https://www.raspberrypi.com/products/raspberry-pi-5/">Raspberry Pi 5</a> as a present.  I don&apos;t know much in detail about it other than it&apos;s a single board computer that is used for education and hobbyists to learn and build projects.  I&apos;m not sure what to do with it, but my job is writing low level code and I could benefit from learning some ARM assembly (as well as RISC-V and WASM, but there&apos;s only so many hours in the day).  From time to time I write my hobby native code in Ada, so does that work on Raspberry Pi 5?</p>
+</p>
+<p>When I write Ada recently, I use a tool called <a href="https://alire.ada.dev/">Alire</a>. It operates like a mashup of <a href="https://rustup.rs/">Rustup</a> and <a href="https://doc.rust-lang.org/cargo/">cargo</a> for Ada, handling package dependencies and installing what you need to build programs.</p>
+</p>
+<p>It&apos;s a veneer over the existing build system of the GNAT tooling for Ada to simplify dependency management, toolchains, and project setup.  Its sort of like a <a href="https://en.wikipedia.org/wiki/Facade_pattern">fascade</a> but for build tooling, since it hides the complexities of <a href="https://www.gnu.org/software/gnat/">GNAT</a> and <a href="https://learn.adacore.com/courses/GNAT_Toolchain_Intro/chapters/gprbuild.html">gprbuild</a>.  Overall it&apos;s a great tool that works just fine with no configuration in many of my use cases.</p>
+</p>
+<h1 id="alire-from-the-package-manager-apt">Alire from the Package Manager (apt)</h1>
+<p>Looks like Raspberry Pi OS is a Debian-based Linux and uses <a href="https://www.raspberrypi.com/documentation/computers/os.html#manage-software-packages-with-apt">apt</a> to manage software packages.  There&apos;s a version of Alire in the apt repository:</p>
+</p>
+<div class="code-block">paul@tegu:~/dev/ada/ $ sudo apt search alire
+Sorting... Done
+Full Text Search... Done
+alire/stable,now 1.2.1-1 arm64 [installed]
+  Ada package manager.
+</div>
+<p>The Alire version available is quite old, 2.1 is the current Alire release.</p>
+<p>My OS version is the <a href="https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit">Raspberry Pi OS recommended as of today</a>, and my package listing is updated.</p>
+</p>
+<div class="code-block">paul@tegu:~/dev/ada/alire $ uname -a
+Linux tegu 6.12.20+rpt-rpi-2712 #1 SMP PREEMPT Debian 1:6.12.20-1+rpt1~bpo12+1 (2025-03-19) aarch64 GNU/Linux
+</div>
+<blockquote>
+    <p>Sidenote: &quot;tegu&quot; - for the last few years, I&apos;ve been naming my computers after lizards.  A tegu is a <a href="https://en.wikipedia.org/wiki/Tegu">species of lizard that lives in Central and South America</a>.</p>
+</blockquote>
+</p>
+<h2 id="making-alire-1-2-from-apt-work">Making Alire 1.2 from apt work</h2>
+<p>The Alire from apt can work.  There have been a lot of improvements since then, but here&apos;s how you can use it if needed.</p>
+<div class="code-block">sudo apt install alire
+</div>
+<p>Does it recognize any toolchains to install?</p>
+<div class="code-block">paul@tegu:~/dev/ada/hello_raspberry $ alr toolchain --select
+Welcome to the toolchain selection assistant
+
+In this assistant you can set up the default toolchain to be used with any crate
+that does not specify its own top-level dependency on a version of gnat or
+gprbuild.
+
+If you choose &quot;None&quot;, Alire will use whatever version is found in the
+environment.
+
+ⓘ gnat is currently not configured. (alr will use the version found in the environment.)
+
+⚠ No indexed versions in the catalog for crate gnat
+
+ⓘ gprbuild is currently not configured. (alr will use the version found in the environment.)
+
+⚠ No indexed versions in the catalog for crate gprbuild
+</div>
+<p>So the apt version of Alire doesn&apos;t find any toolchains.  This might be a problem with the Alire index for this particular architecture, but it&apos;s a much older Alire version that I&apos;d rather not use, so I&apos;m not going to spend more time analyzing this rabbit hole until I exhaust other options.</p>
+<p>However, even though toolchain download doesn&apos;t find anything, I can manually download a toolchain using <code>apt</code> and use that instead.</p>
+<div class="code-block">sudo apt install gnat gprbuild
+</div>
+<p>Throwing together a simple &quot;Hello world&quot; program:</p>
+<div class="code-block">alr init --bin hello_raspberry
+</div>
+<p>with some code:</p>
+<div class="code-block"><span class="kw">with</span> Ada.Text_IO;
+
+<span class="kw">procedure</span> Hello_Raspberry <span class="kw">is</span>
+<span class="kw">begin</span>
+   Ada.Text_IO.Put_Line(<span class="str">&quot;Hello, Raspberry!&quot;</span>);
+<span class="kw">end</span> Hello_Raspberry;</div>
+<p>This builds and run from Alire using the tooling installed from <code>apt</code>:</p>
+<div class="code-block">paul@tegu:~/dev/ada/hello_raspberry $ alr run
+ⓘ Building hello_raspberry/hello_raspberry.gpr...
+Setup
+   [mkdir]        object directory for project Hello_Raspberry
+   [mkdir]        exec directory for project Hello_Raspberry
+Compile
+   [Ada]          hello_raspberry.adb
+Bind
+   [gprbind]      hello_raspberry.bexch
+   [Ada]          hello_raspberry.ali
+Link
+   [link]         hello_raspberry.adb
+Build finished successfully in 0.74 seconds.
+Hello, Raspberry!
+</div>
+<p>That&apos;s ok, but I&apos;d like to use the more recent Alire version and have it manage my gprbuild and gnat tools.</p>
+<h1 id="getada-dev">getada.dev</h1>
+<p>There&apos;s a site called <a href="https://www.getada.dev/">getada.dev</a> which can help you quickly get up and running with Ada, so I&apos;ll try to see if that provides a more recent Alire version.</p>
+</p>
+<p>There&apos;s a script you download and run, sort of <a href="https://www.rust-lang.org/tools/install">like what Rust does</a>.</p>
+</p>
+<div class="code-block">paul@tegu:~/dev/ada $ curl --proto &apos;=https&apos; -sSf https://www.getada.dev/init.sh | sh
+info: downloading installer
+Welcome to the unofficial Alire Installer (&quot;GetAda&quot;) v1.0.2!
+Alire is the official Ada Package Manager. For more information
+please visit https://ada-lang.io or https://alire.ada.dev
+Copyright (C) 2022-2024 A.J. Ianozi licensed GPL3.
+
+No version has been specified. Will attempt to install the latest version of Alire.
+(To specify a version, pass --alire-version=x.y.z)
+Temporary files will be stored in a folder in:
+/tmp
+
+(This can be changed with the &quot;TMPDIR&quot; environment variable or passing --tmp=/directory/here)
+
+Any of alire&apos;s scripts or helper files will store in the following location:
+/home/paul/.getada
+
+(This can be changed either by setting the &quot;GETADA_CFG&quot; environment variable or passing --cfg=/directory/here)
+
+Alire&apos;s binary will be installed as &quot;alr&quot; in the following location:
+/home/paul/.getada/bin
+
+(This can be changed either by setting the &quot;GETADA_BIN&quot; environment variable or passing --bin=/directory/here)
+
+This path will be added to your local PATH variable by modifying the following files:
+/home/paul/.profile
+(This can be changed by passing --no-path)
+
+You can revert everything that was done by re-running GetAda with the --uninstall option.
+
+Continue with installation? [y/n]  (press &quot;enter&quot; with no input for interactive mode) &gt;y
+Downloading https://github.com/alire-project/alire/releases/download/v2.1.0/alr-2.1.0-bin-aarch64-linux.zip to /tmp/tmp.JWshkxz3me7iSB25/alr-2.1.0-bin-aarch64-linux.zip
+Creating Directory: /home/paul/.getada
+Creating Directory: /home/paul/.getada/bin
+Extracting: /tmp/tmp.JWshkxz3me7iSB25/alr-2.1.0-bin-aarch64-linux.zip to /home/paul/.getada/bin
+Copying /tmp/tmp.s5XvWE918X/getada to /home/paul/.getada/bin/getada
+Testing binary by running &quot;/home/paul/.getada/bin/alr --version&quot;
+Unable to run binary... Attempting to troubleshoot.
+Attempting &quot;/bin/chmod +x /home/paul/.getada/bin/alr&quot;
+Testing binary by running &quot;/home/paul/.getada/bin/alr --version&quot;
+/home/paul/.getada/bin/alr: /lib/aarch64-linux-gnu/libc.so.6: version `GLIBC_2.38&apos; not found (required by /home/paul/.getada/bin/alr)
+Unable to run binary... Attempting to troubleshoot.
+Something went wrong... Aborting installation...
+Attempting to save log in HOME directory:/home/paul/log.dat
+Attempting to roll back to state before installer ran
+Uninstalling...
+Removing: /home/paul/.getada/bin/alr
+Removing: /home/paul/.getada/bin/getada
+Removing: /home/paul/.getada/bin
+Removing: /home/paul/.getada
+Alire has (hopefully) been uninstalled.
+To reinstall, please visit https://www.getada.dev/
+Please press any key to continue.
+If filing a bug report, please attach the log.
+
+raised DEFAULTS.INVALID_FILE : /home/paul/.getada/bin/getada is not a valid executible by this system.
+[/tmp/tmp.s5XvWE918X/getada]
+0x4442f4 installer__install at ???
+0x403e2c _ada_getada at ???
+0x403a30 main at ???
+[/lib/aarch64-linux-gnu/libc.so.6]
+0x7fff7acf773c
+0x7fff7acf7814
+[/tmp/tmp.s5XvWE918X/getada]
+0x403b2c _start at ???
+0xfffffffffffffffc
+</div>
+<p>Unfortunately the script doesn&apos;t work for Raspberry Pi 5.  It doesn&apos;t look necessarily like the script&apos;s fault though.  It does download the binary, it&apos;s the Alire binary that&apos;s the weak link here.</p>
+<div class="code-block">Testing binary by running &quot;/home/paul/.getada/bin/alr --version&quot;
+/home/paul/.getada/bin/alr: /lib/aarch64-linux-gnu/libc.so.6: version `GLIBC_2.38&apos; not found (required by /home/paul/.getada/bin/alr)
+</div>
+<p>This looks like a loader issue, where it can&apos;t find the correct GLIBC version on the system to load into memory to satisfy the library requested from the program being executed.  There&apos;s a excellent book called <a href="https://www.amazon.com/Advanced-C-Compiling-Milan-Stevanovic/dp/1430266678">Advanced C and C++ Compiling</a> which goes into extreme detail about this topic.  There&apos;s also a much older book called &quot;Linkers and Loaders.&quot;</p>
+</p>
+<p><code>getada.sh</code> cleans up the directory it downloads, but if I download it myself, I can examine what it requests:</p>
+<div class="code-block">paul@tegu:~/dev/ada $ ldd -v bin/alr
+bin/alr: /lib/aarch64-linux-gnu/libc.so.6: version `GLIBC_2.38&apos; not found (required by bin/alr)
+        linux-vdso.so.1 (0x00007fff11ad8000)
+        libgcc_s.so.1 =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x00007fff10580000)
+        libc.so.6 =&gt; /lib/aarch64-linux-gnu/libc.so.6 (0x00007fff103c0000)
+        /lib/ld-linux-aarch64.so.1 (0x00007fff11aa0000)
+
+        Version information:
+        bin/alr:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.3) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_4.2.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.38) =&gt; not found
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.32) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.28) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.33) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libgcc_s.so.1:
+                libc.so.6 (GLIBC_2.35) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libc.so.6:
+                ld-linux-aarch64.so.1 (GLIBC_2.35) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_PRIVATE) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+</div>
+<p>If I reinstall the Alire 1.2 version from apt, I can check to see what how GLIBC is being handled there:</p>
+<div class="code-block">paul@tegu:~/dev/ada/hello_raspberry $ ldd -v /usr/bin/alr
+        linux-vdso.so.1 (0x00007ffec5848000)
+        libgnatcoll.so.21 =&gt; /lib/aarch64-linux-gnu/libgnatcoll.so.21 (0x00007ffec4250000)
+        libxmlezout.so.7 =&gt; /lib/aarch64-linux-gnu/libxmlezout.so.7 (0x00007ffec4210000)
+        libgnarl-12.so =&gt; /lib/aarch64-linux-gnu/libgnarl-12.so (0x00007ffec41a0000)
+        libgnat-12.so =&gt; /lib/aarch64-linux-gnu/libgnat-12.so (0x00007ffec3d60000)
+        libgcc_s.so.1 =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x00007ffec3d20000)
+        libc.so.6 =&gt; /lib/aarch64-linux-gnu/libc.so.6 (0x00007ffec3b60000)
+        libgnatprj.so.10 =&gt; /lib/aarch64-linux-gnu/libgnatprj.so.10 (0x00007ffec31f0000)
+        libxmlada_schema.so.7 =&gt; /lib/aarch64-linux-gnu/libxmlada_schema.so.7 (0x00007ffec3110000)
+        libxmlada_dom.so.8 =&gt; /lib/aarch64-linux-gnu/libxmlada_dom.so.8 (0x00007ffec30d0000)
+        libxmlada_sax.so.7 =&gt; /lib/aarch64-linux-gnu/libxmlada_sax.so.7 (0x00007ffec3060000)
+        libxmlada_input.so.7 =&gt; /lib/aarch64-linux-gnu/libxmlada_input.so.7 (0x00007ffec3030000)
+        libxmlada_unicode.so.7 =&gt; /lib/aarch64-linux-gnu/libxmlada_unicode.so.7 (0x00007ffec2c90000)
+        /lib/ld-linux-aarch64.so.1 (0x00007ffec5810000)
+        libm.so.6 =&gt; /lib/aarch64-linux-gnu/libm.so.6 (0x00007ffec2bf0000)
+
+        Version information:
+        /usr/bin/alr:
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libgnatcoll.so.21:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.33) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlezout.so.7:
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libgnarl-12.so:
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.32) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libgnat-12.so:
+                libm.so.6 (GLIBC_2.27) =&gt; /lib/aarch64-linux-gnu/libm.so.6
+                libm.so.6 (GLIBC_2.29) =&gt; /lib/aarch64-linux-gnu/libm.so.6
+                libm.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libm.so.6
+                libc.so.6 (GLIBC_2.28) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.33) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_4.2.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_3.3) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+        /lib/aarch64-linux-gnu/libgcc_s.so.1:
+                libc.so.6 (GLIBC_2.35) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libc.so.6:
+                ld-linux-aarch64.so.1 (GLIBC_2.35) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_PRIVATE) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+        /lib/aarch64-linux-gnu/libgnatprj.so.10:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlada_schema.so.7:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlada_dom.so.8:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlada_sax.so.7:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlada_input.so.7:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libxmlada_unicode.so.7:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libm.so.6:
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+                libc.so.6 (GLIBC_PRIVATE) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+</div>
+<p>Poking around, it seems that the Pi only has GLIBC 2.36 available:</p>
+<div class="code-block">paul@tegu:~/dev/ada $ /lib/aarch64-linux-gnu/libc.so.6
+GNU C Library (Debian GLIBC 2.36-9+rpt2+deb12u10) stable release version 2.36.
+</div>
+<h1 id="building-alire-from-source">Building Alire from Source</h1>
+<p>Will Alire work if I build from source?  It doesn&apos;t build itself using itself, and since <code>gnat</code> and <code>gprbuild</code> are the underlying tech, will it build if I use those packages from apt?</p>
+<p>Removing the old Alire (again) and grabbing the gnat toolchain:</p>
+<div class="code-block">sudo apt remove alire
+sudo apt install gnat gprbuild
+</div>
+<p>The build steps provided in the readme work and it builds successfully!</p>
+<div class="code-block">git clone --recurse-submodules https://github.com/alire-project/alire.git
+cd alire
+dev/build.sh
+</div>
+<p>The clone grabs the most recent version, so I can dogfood on the bleeding edge or swap over to the stable version and use that instead if I want.</p>
+<div class="code-block">paul@tegu:~ $ bin/alr --version
+alr 3.0.0-dev
+</div>
+<p>How do its libraries get satisfied?</p>
+<div class="code-block">paul@tegu:~ $ ldd -v bin/alr
+        linux-vdso.so.1 (0x00007fffb4478000)
+        libgcc_s.so.1 =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x00007fffb2d40000)
+        libc.so.6 =&gt; /lib/aarch64-linux-gnu/libc.so.6 (0x00007fffb2b80000)
+        /lib/ld-linux-aarch64.so.1 (0x00007fffb4440000)
+
+        Version information:
+        bin/alr:
+                libgcc_s.so.1 (GCC_3.3) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_3.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libgcc_s.so.1 (GCC_4.2.0) =&gt; /lib/aarch64-linux-gnu/libgcc_s.so.1
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.32) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.28) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.33) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libgcc_s.so.1:
+                libc.so.6 (GLIBC_2.35) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.34) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+                libc.so.6 (GLIBC_2.17) =&gt; /lib/aarch64-linux-gnu/libc.so.6
+        /lib/aarch64-linux-gnu/libc.so.6:
+                ld-linux-aarch64.so.1 (GLIBC_2.35) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_PRIVATE) =&gt; /lib/ld-linux-aarch64.so.1
+                ld-linux-aarch64.so.1 (GLIBC_2.17) =&gt; /lib/ld-linux-aarch64.so.1
+</div>
+<p>It built, but does it let me grab toolchains with it?  First, I need to remove my built-in <code>gnat</code> and <code>gprbuild</code>.  This isn&apos;t strictly necessary, but more to prove the point that I don&apos;t need them installed to use Alire to build Ada projects since it can manage toolchains.</p>
+<div class="code-block">sudo apt remove gnat gprbuild
+sudo apt autoremove
+</div>
+<p>Now to grab my toolchains:</p>
+<div class="code-block">paul@tegu:~/dev/ada/hello_raspberry $ alr toolchain --select
+Welcome to the toolchain selection assistant
+
+In this assistant you can set up the default toolchain to be used with any crate
+that does not specify its own top-level dependency on a version of gnat or
+gprbuild.
+
+If you choose &quot;None&quot;, Alire will use whatever version is found in the
+environment.
+
+ⓘ gnat is currently not configured. (alr will use the version found in the environment.)
+
+Please select the gnat version for use with this configuration
+  1. gnat_native=14.2.1
+  2. None
+  3. gnat_arm_elf=14.2.1
+  4. gnat_avr_elf=14.2.1
+  5. gnat_riscv64_elf=14.2.1
+  6. gnat_xtensa_esp32_elf=14.2.1
+Enter your choice index (first is default):
+&gt; 1
+ⓘ Selected tool version gnat_native=14.2.1
+
+ⓘ Choices for the following tool are narrowed down to releases compatible with just selected gnat_native=14.2.1
+
+ⓘ gprbuild is currently not configured. (alr will use the version found in the environment.)
+
+Please select the gprbuild version for use with this configuration
+  1. gprbuild=24.0.1
+  2. None
+Enter your choice index (first is default):
+&gt; 1
+ⓘ Selected tool version gprbuild=24.0.1
+ⓘ Deploying gprbuild=24.0.1...
+################################################# 100.0%
+ⓘ gprbuild=24.0.1 installed successfully.
+ⓘ Deploying gnat_native=14.2.1...
+################################################# 100.0%
+ⓘ gnat_native=14.2.1 installed successfully.
+</div>
+<p>Ok, so now I have Alire-managed toolchain to build, does my &quot;Hello, World&quot; program build and run?</p>
+<div class="code-block">paul@tegu:~/dev/ada/hello_raspberry $ alr clean
+paul@tegu:~/dev/ada/hello_raspberry $ alr run
+ⓘ Building hello_raspberry=0.1.0-dev/hello_raspberry.gpr...
+Compile
+   [Ada]          hello_raspberry.adb
+Bind
+   [gprbind]      hello_raspberry.bexch
+   [Ada]          hello_raspberry.ali
+Link
+   [link]         hello_raspberry.adb
+✓ Build finished successfully in 0.62 seconds.
+Hello, Raspberry!
+</div>
+<h1 id="what-symbols-were-missing">What symbols were missing?</h1>
+<p>Using <code>objdump</code> I can look for the symbols which are missing from GLIBC 2.38 from the downloaded version of Alire.  The gist is that there&apos;s a hole indicating an expected function to be found at runtime, that cannot be fulfilled.</p>
+<div class="code-block">paul@tegu:~/dev/ada/from_github $ objdump --dynamic-syms ./alr | grep -i 2.38
+0000000000000000      DF *UND*  0000000000000000 (GLIBC_2.38) __isoc23_fscanf
+0000000000000000      DF *UND*  0000000000000000 (GLIBC_2.38) __isoc23_strtol
+</div>
+<p>I would expect <code>fscanf</code> and <code>strtol</code> to be commonly available, but the <code>__isoc23</code> prefixes indicate a new C version that an older libc might not have.  That seems to be the issue, as my local version of <code>libc</code> on the Pi only has <code>isoc99</code> versions.</p>
+<div class="code-block">paul@tegu:~/dev/ada/from_github $ objdump --dynamic-syms /lib/aarch64-linux-gnu/libc.so.6 | grep iso
+000000000004c9f0 g    DF .text  0000000000000028  GLIBC_2.17  __isoc99_vfscanf
+00000000000a7550 g    DF .text  00000000000000bc  GLIBC_2.17  __isoc99_wscanf
+00000000000a7700 g    DF .text  0000000000000028  GLIBC_2.17  __isoc99_vfwscanf
+000000000004ca60 g    DF .text  00000000000000bc  GLIBC_2.17  __isoc99_vsscanf
+00000000000a7850 g    DF .text  00000000000000c8  GLIBC_2.17  __isoc99_vswscanf
+00000000000a7650 g    DF .text  00000000000000a8  GLIBC_2.17  __isoc99_fwscanf
+00000000000a7610 g    DF .text  0000000000000038  GLIBC_2.17  __isoc99_vwscanf
+00000000000a7730 g    DF .text  0000000000000118  GLIBC_2.17  __isoc99_swscanf
+000000000004c770 g    DF .text  00000000000000a8  GLIBC_2.17  __isoc99_fscanf
+000000000004ca20 g    DF .text  0000000000000038  GLIBC_2.17  __isoc99_vscanf
+000000000004c8e0 g    DF .text  0000000000000110  GLIBC_2.17  __isoc99_sscanf
+000000000004c820 g    DF .text  00000000000000bc  GLIBC_2.17  __isoc99_scanf
+</div>
+<p>We can examine the Alire assembly to see where the function calls occur.</p>
+<div class="code-block">objdump --disassemble ./alr
+</div>
+<p>It looks like both of the functions are used by GNAT: I&apos;m not sure what <code>__gnat_personality_v0</code> is but that&apos;s one usage.</p>
+<div class="code-block">0000000000fa30a0 &lt;__gnat_personality_v0&gt;:
+  fa30a0:       d503233f        paciasp
+  fa30a4:       d10543ff        sub     sp, sp, #0x150
+  fa30a8:       900027e2        adrp    x2, 149f000 &lt;_GLOBAL_OFFSET_TABLE_+0x2de0&gt;
+  fa30ac:       f942f842        ldr     x2, [x2, #1520]
+  fa30b0:       a90f7bfd        stp     x29, x30, [sp, #240]
+  fa30b4:       9103c3fd        add     x29, sp, #0xf0
+  fa30b8:       a91053f3        stp     x19, x20, [sp, #256]
+
+...
+
+  fa34b4:       97c57733        bl      101180 &lt;__isoc23_strtol@plt&gt;
+</div>
+<p>Another other is in <code>__gnat_killprocesstree</code>, and the third one is in <code>db</code>. The important thing is that Alire itself doesn&apos;t directly either one, and that it&apos;s something that GNAT is pulling in.</p>
+<div class="code-block">0000000000fa1970 &lt;__gnat_killprocesstree&gt;:
+
+...
+
+  fa1aa8:       97c57c0e        bl      100ae0 &lt;__isoc23_fscanf@plt&gt;
+</div>
+<p>This seems like a reasonable stopping point.</p>
+<h1 id="remarks">Remarks</h1>
+<p>Ada works on the Raspberry Pi 5!  It takes a little bit of effort to use a source build of Alire for now.</p>
+<p>Some people who work on Ada are paid, but there are a lot of volunteers in the open source community who help keep things running.  There&apos;s a lot of places you could help make an impact, so don&apos;t be afraid to reach out on the <a href="https://forum.ada-lang.io/">community forum</a> or <a href="https://discord.gg/edM2czVKN4">discord</a>.</p>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://forum.ada-lang.io/">ada-lang.io forums</a></li>
+<li>
+<a href="https://alire.ada.dev/">Alire: Ada package manager</a></li>
+<li>
+<a href="https://www.amazon.com/Advanced-C-Compiling-Milan-Stevanovic/dp/1430266678">Amazon: Advanced C and C++ Compiling</a></li>
+<li>
+<a href="https://doc.rust-lang.org/cargo/">Rust: Cargo</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/Facade_pattern">Wikipedia: Fascade Pattern</a></li>
+<li>
+<a href="https://www.getada.dev/">GetAda.Dev</a></li>
+<li>
+<a href="https://www.gnu.org/software/gnat/">GNAT</a></li>
+<li>
+<a href="https://learn.adacore.com/courses/GNAT_Toolchain_Intro/chapters/gprbuild.html">GPRbuild</a></li>
+<li>
+<a href="https://www.raspberrypi.com/products/raspberry-pi-5/">Raspberry Pi 5</a></li>
+<li>
+<a href="https://www.raspberrypi.com/documentation/computers/os.html#manage-software-packages-with-apt">Raspberry Pi: APT</a></li>
+<li>
+<a href="https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit">Raspberry Pi OS</a></li>
+<li>
+<a href="https://www.rust-lang.org/tools/install">Install Rust</a></li>
+<li>
+<a href="https://rustup.rs/">Rustup</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/Tegu">Wikipedia: Tegu</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

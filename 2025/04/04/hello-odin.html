@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Downloading odin and writing simple programs" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Hello, odin</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#hello-odin">Hello, odin</a></li>
+<ul class="outline">
+<li><a href="#download">Download</a></li>
+<li><a href="#simple-programs">Simple Programs</a></li>
+<li><a href="#glfw-setup">GLFW setup</a></li>
+<li><a href="#glfw-window-creation">GLFW window creation</a></li>
+    </ul>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="hello-odin">Hello, odin</h1>
+<p>I&apos;ve been looking at the <a href="https://odin-lang.org/">Odin language</a> for a while, and figured it was time to give it a try.  It&apos;s not talked about very much, though it looks like it aims to be an improvement on C.  I saw <a href="https://www.youtube.com/watch?v=fYUruq352yE">Ginger Bill&apos;s discussion with TJ and Primeagen</a> a while ago, and he talked clearly and directly about his opinions and its aims for simplicity.</p>
+<p>I have no idea what I&apos;m getting into here.  The syntax looks sort of similar to that of Jonathan Blow&apos;s Jai language that I&apos;ve seen in his videos.</p>
+</p>
+<h2 id="download">Download</h2>
+<p>After downloading it <a href="https://github.com/odin-lang/Odin/releases">from Github</a>, it looks self-contained.</p>
+<div class="code-block">├───base
+│   ├───builtin
+│   ├───intrinsics
+│   └───runtime
+├───bin
+│   ├───llvm
+│   │   └───windows
+│   └───nasm
+│       └───windows
+├───core
+│   ├───bufio
+│   ├───bytes
+│   ├───c
+│   ├───compress
+│   │   ├───gzip
+│   │   ├───shoco
+│   │   └───zlib
+│   ├───container
+│   │   ├───avl
+│   │   ├───bit_array
+│   │   ├───intrusive
+│   │   ├───lru
+│   │   ├───priority_queue
+│   │   ├───queue
+│   │   ├───rbtree
+│   │   ├───small_array
+│   │   └───topological_sort
+│   ├───crypto
+│   ├───debug
+│   ├───dynlib
+│   ├───encoding
+│   ├───flags
+│   ├───fmt
+│   ├───hash
+│   ├───image
+│   │   ├───bmp
+│   │   ├───netpbm
+│   │   ├───png
+│   │   ├───qoi
+│   │   └───tga
+│   ├───io
+│   ├───log
+│   ├───math
+│   ├───mem
+│   ├───net
+│   ├───odin
+│   │   ├───ast
+│   │   ├───doc-format
+│   │   ├───format
+│   │   ├───parser
+│   │   ├───printer
+│   │   └───tokenizer
+│   ├───os
+│   ├───path
+│   ├───prof
+│   ├───reflect
+│   ├───relative
+│   ├───simd
+│   ├───slice
+│   ├───sort
+│   ├───strconv
+│   ├───strings
+│   ├───sync
+│   ├───sys
+│   ├───testing
+│   ├───text
+│   ├───thread
+│   ├───time
+│   │   ├───datetime
+│   │   └───timezone
+│   └───unicode
+├───examples
+│   ├───all
+│   └───demo
+├───shared
+└───vendor
+    ├───box2d
+    ├───cgltf
+    ├───commonmark
+    ├───compress
+    ├───darwin
+    ├───directx
+    ├───egl
+    ├───ENet
+    ├───fontstash
+    ├───ggpo
+    ├───glfw
+    ├───libc
+    ├───lua
+    ├───microui
+    ├───miniaudio
+    ├───nanovg
+    ├───OpenEXRCore
+    ├───OpenGL
+    ├───portmidi
+    ├───raylib
+    ├───sdl2
+    ├───sdl3
+    ├───stb
+    ├───vulkan
+    ├───wasm
+    ├───wgpu
+    ├───windows
+    ├───x11
+    └───zlib
+</div>
+<p>It looks like the <code>vendor/</code> folder comes with a bunch of prebundled third-party libraries for things I could use to build games: Box2D, Lua, Vulkan, GLFW, and so on.  I&apos;ve never seen this before, that&apos;s unexpected, but looks very nice if it works.</p>
+<h2 id="simple-programs">Simple Programs</h2>
+<p>After adding the odin directory to <code>$PATH</code>, copying and running the <a href="https://odin-lang.org/docs/overview/#hellope">&quot;Hellope!&quot; program</a> builds and runs as advertised.  There&apos;s no boiler plate, no <code>.toml</code> file or anything in the directory to build and run the program.</p>
+<div class="code-block"><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">&quot;core:fmt&quot;</span>
+
+main <span class="sym">:</span><span class="sym">:</span> <span class="kw">proc</span>() {
+    fmt.println(<span class="str">&quot;Hello, World!&quot;</span>)
+}</div>
+<p>Semicolons appear optional.</p>
+<p>The operators seem familiar to C and C++ with a few new ones:</p>
+<div class="code-block">%%      remainder (floored)        integers
+&amp;~      bitwise and-not            integers, enums
+%%=      remainder (floored) and assign   a %%= b is a = a %% b
+&amp;~=      bitwise and-not and assign       a &amp;~= b is a = a &amp;~ b
+</div>
+<h2 id="glfw-setup">GLFW setup</h2>
+<p>Do the libraries in that <code>vendor/</code> folder work, or are they just for show?</p>
+<p>I don&apos;t know how to import a library, but fmt is <code>import core:fmt</code> so maybe I can import glfw from that folder with <code>vendor/glfw</code>?  It seems to work. Looking at the vendor code, it looks like you can use an import by providing the name before the path.</p>
+<div class="code-block"><span class="kw">import</span> glfw <span class="str">&quot;bindings&quot;</span></div>
+<p>I&apos;m looking for <code>glfwInit</code>, looks like the wrapper chops off the front:</p>
+<div class="code-block">PS D:\bin\odin-windows-amd64-dev-2025-04&gt; rg Init | rg glfw
+vendor\glfw\wrapper.odin:Init      :: glfw.Init
+vendor\glfw\wrapper.odin:InitHint  :: glfw.InitHint
+vendor\glfw\wrapper.odin:InitAllocator :: glfw.InitAllocator
+vendor\glfw\wrapper.odin:InitVulkanLoader :: glfw.InitVulkanLoader
+</div>
+<p>I can&apos;t believe this works:</p>
+<div class="code-block"><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">&quot;core:fmt&quot;</span>
+<span class="kw">import</span> <span class="str">&quot;vendor:glfw&quot;</span>
+
+main <span class="sym">:</span><span class="sym">:</span> <span class="kw">proc</span>() {
+    fmt.println(glfw.Init())
+}</div>
+<p>It&apos;s a bit interesting the integer from init gets interpreted as &quot;true&quot; by <a href="https://pkg.odin-lang.org/core/fmt/">the formatter.</a></p>
+<div class="code-block">PS D:\dev\odin\03_glfw_window&gt; odin run .
+true
+</div>
+<p>Can I just print the version string?  It looks like it&apos;s wrapped:</p>
+<div class="code-block">PS D:\bin\odin-windows-amd64-dev-2025-04&gt; rg GetVersionString
+vendor\glfw\wrapper.odin
+112:GetVersionString :: proc &quot;c&quot; () -&gt; string {
+113:    return string(glfw.GetVersionString())
+
+vendor\glfw\bindings\bindings.odin
+112:    GetVersionString     :: proc() -&gt; cstring ---
+</div>
+<p>That seems to work.  I&apos;m not sure which version of that function I&apos;m calling though, the one from <code>wrapper.odin</code> or from <code>bindings.odin</code>.</p>
+<div class="code-block">PS D:\dev\odin\03_glfw_window&gt; odin run .
+3.4.0 Win32 WGL Null EGL OSMesa VisualC
+</div>
+<h2 id="glfw-window-creation">GLFW window creation</h2>
+<p>Can it create a window though?  What happens when I try to port the <a href="https://www.glfw.org/documentation.html">GLFW example</a> directly to Odin?</p>
+<p>Looks like <code>main</code> doesn&apos;t return a value, just like Ada entry procedures, and requires a separate function to do so, <code>os.exit()</code>.</p>
+<p>Trying to create and then initialize a window says there&apos;s a redeclaration. Perhaps <code>:=</code> isn&apos;t just assignment, but also declares like in Go?</p>
+<div class="code-block">window :: glfw.WindowHandle;
+window := glfw.CreateWindow(640, 480, &quot;Hello World&quot;, nil, nil)
+
+PS D:\dev\odin\03_glfw_window&gt; odin run .
+D:/dev/odin/03_glfw_window/empty_glfw_window.odin(15:2) Error: Redeclaration of &apos;window&apos; in this scope
+        at D:/dev/odin/03_glfw_window/empty_glfw_window.odin(14:2)
+        window := glfw.CreateWindow(640, 480, &quot;Hello World&quot;, nil, nil)
+</div>
+<p>Ok, so there&apos;s also no <code>while</code> loop, only <code>for</code>.</p>
+<p>It doesn&apos;t work as-is.  I look through the OpenGL vendor directory in odin and find a mention about loading OpenGL function pointers.  Once I add the appropriate call in <code>gl.load_up_to(4, 5, glfw.gl_set_proc_address)</code>, it works:</p>
+<div class="code-block"><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">&quot;core:fmt&quot;</span>
+<span class="kw">import</span> <span class="str">&quot;core:os&quot;</span>
+<span class="kw">import</span> <span class="str">&quot;vendor:glfw&quot;</span>
+<span class="kw">import</span> gl <span class="str">&quot;vendor:OpenGL&quot;</span>
+
+main <span class="sym">:</span><span class="sym">:</span> <span class="kw">proc</span>() {
+    <span class="kw">if</span> <span class="sym">!</span>glfw.Init() {
+        os.exit(<span class="sym">-</span><span class="val">1</span>)
+    }
+    <span class="kw">defer</span> glfw.Terminate()
+
+    fmt.println(<span class="str">&quot;Initialized GLFW&quot;</span>)
+    window <span class="sym">:</span><span class="sym">=</span> glfw.CreateWindow(<span class="val">640</span>, <span class="val">480</span>, <span class="str">&quot;Hello World&quot;</span>, <span class="kw">nil</span>, <span class="kw">nil</span>)
+    <span class="kw">defer</span> glfw.DestroyWindow(window)
+
+    glfw.MakeContextCurrent(window)
+    gl.load_up_to(<span class="val">4</span>, <span class="val">5</span>, glfw.gl_set_proc_address)
+
+    <span class="kw">if</span> window <span class="sym">=</span><span class="sym">=</span> <span class="kw">nil</span> {
+        fmt.println(<span class="str">&quot;Unable to create window.&quot;</span>)
+        os.exit(<span class="sym">-</span><span class="val">2</span>)
+    }
+
+    <span class="kw">for</span> <span class="sym">!</span>glfw.WindowShouldClose(window) {
+        gl.ClearColor(<span class="val">0.3</span>, <span class="val">0.5</span>, <span class="val">0.7</span>, <span class="val">1.0</span>)
+        gl.Clear(gl.COLOR_BUFFER_BIT)
+        glfw.SwapBuffers(window)
+        glfw.PollEvents()
+    }
+
+    fmt.println(<span class="str">&quot;Terminated GLFW&quot;</span>)
+}</div>
+<p><figure><img src="/images/odin/glfw-hello-world.png" alt="Example blank GLFW application"/><figcaption>Example blank GLFW application</figcaption></figure></p>
+<h1 id="summary">Summary</h1>
+<p>Odin provided a great out of the box experience.  This was just a test run, but I might be returning to Odin for some projects to see how well it does.</p>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://github.com/odin-lang/Odin/releases">GitHub: odin-lang/odin releases</a></li>
+<li>
+<a href="https://odin-lang.org/">Odin Language</a></li>
+<li>
+<a href="https://odin-lang.org/docs/install/#official-releases">Odin Releases</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

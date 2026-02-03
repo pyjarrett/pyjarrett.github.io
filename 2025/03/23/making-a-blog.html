@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing a static site generator and parsing Markdown!" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Me making a blog</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#me-making-a-blog">Me making a blog</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#the-many-flavors-of-markdown">The Many Flavors of Markdown</a></li>
+<li><a href="#block-parsing-approach">Block Parsing Approach</a></li>
+<ul class="outline">
+<li><a href="#line-stack">Line stack</a></li>
+<li><a href="#visitors">Visitors</a></li>
+<li><a href="#difficulties">Difficulties</a></li>
+    </ul>
+<li><a href="#inline-formatting">Inline formatting</a></li>
+<ul class="outline">
+<li><a href="#images">Images</a></li>
+    </ul>
+<li><a href="#markdown-extras">Markdown extras</a></li>
+<ul class="outline">
+<li><a href="#metadata-front-matter">Metadata ("Front Matter")</a></li>
+<li><a href="#syntax-highlighting">Syntax highlighting</a></li>
+    </ul>
+<li><a href="#running-locally">Running Locally</a></li>
+<ul class="outline">
+<li><a href="#reducing-file-saves">Reducing file saves</a></li>
+    </ul>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="me-making-a-blog">Me making a blog</h1>
+<p>Writing practices the ability to collect and present evidence, so I wanted to make a blog.  The timidity to post anything online drove me to make my own static site generator for the site, in hopes I&apos;d never get it done, and hence never have to write anything.</p>
+<p>I&apos;ve had difficulties keeping previous blogs maintained using <a href="https://jekyllrb.com/">Jekyll</a>, <a href="https://gohugo.io/">Hugo</a> and <a href="https://www.sphinx-doc.org">Sphinx</a>.  While these are great tools used by many blogs, they didn&apos;t seem to fit me, and provided much more configuration and power than I really needed. I also failed to make writing a routine at the time, so when I&apos;d come back months later, I&apos;d spend time and energy figuring out how to rebuild the blog.</p>
+</p>
+<h1 id="overview">Overview</h1>
+<p>The general concept takes an input directory with content, and produces the content of a web in another directory.</p>
+<p>The static site generators I&apos;ve often run across often use <a href="https://daringfireball.net/projects/markdown/">Markdown</a> files as input.  Sphinx was the only exception I tried and it used <a href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html">reStructuredText</a>, though it also supports Markdown.</p>
+<p>The builder needs to (1) recursively traverse a directory and (2) read and write files. The desire to minimize dependencies drove this project.  It boiled down to:</p>
+<ul>
+    <li>cmake</li>
+    <li>C++ standard library</li>
+    <li><a href="https://github.com/google/googletest">googletest</a> (test suite only)</li>
+</ul>
+<p>This blog is generated from Markdown files using a homemade markdown parser and static site generator. If at some point, I no longer have a C++ compiler available, I can port all my code to another language, which I&apos;ve done for other hobby projects before. Writing everything myself provided a great learning experience about parsing and working with graph structures.</p>
+<p>While my markdown parser isn&apos;t industrial grade parser for general use, it was edifying to write.  I learned a lot of new things about Markdown that I didn&apos;t know before, like how <a href="https://spec.commonmark.org/0.31.2/#link-reference-definitions">Link Reference Definitions</a> can go anywhere.  It&apos;s also been exciting to learning more about modern HTML and CSS since I&apos;m not a web dev.</p>
+<p>Doing the same project multiple times helps teach me how to structure code, so I actually wrote parts of the blog generator three times. The final generator is actually the third that I wrote, progressively getting more advanced.  The first was just for single Markdown file translation to HTML in Rust, which included a simple syntax highlighter for Ada.  The second was in Ada, which converted entire trees of Markdown files into HTML, and the last, a C++ version.</p>
+<p>Neither the Rust nor the Ada versions handled nested blocks.  Ignoring nested quote blocks and nested lists, and limiting to single or double <code>*</code> or <code>_</code> helps severely limit Markdown inline parsing complexity, though I eventually broke those barriers in my current generator. If you&apos;re looking for a simple project, a simplified Markdown parser from scratch with these limitations seems doable quickly.</p>
+</p>
+<h1 id="the-many-flavors-of-markdown">The Many Flavors of Markdown</h1>
+<p>Markdown libraries exist for a variety of languages.  However, that would be too easy and then I&apos;d have to think up some content.</p>
+<p>Markdown evolved beyond the original <a href="https://daringfireball.net/projects/markdown/">Daring Fireball&apos;s Markdown</a>. Being initially released without a formal specification, being extremely useful, and being somewhat easy to implement means that it seems like there are more flavors of Markdown than flavors in a Coca-Coca Freestyle machine.</p>
+<p>A <a href="https://spec.commonmark.org/0.31.2/">CommonMark spec</a> exists which helped me understand Markdown&apos;s concepts in a more formal way. I found this spec very readable and found the terminology and the plethora of examples helped me think much more clearly about parsing. It also describes a <a href="https://spec.commonmark.org/0.31.2/#appendix-a-parsing-strategy">parsing strategy</a>, though I used a different method.  <a href="https://github.github.com/gfm/">GitHub flavored Markdown</a> is another common variant and also has a spec.</p>
+</p>
+<h1 id="block-parsing-approach">Block Parsing Approach</h1>
+<p>The CommonMark spec describes it as a sequence of characters, which form lines which build up to form &quot;container blocks&quot; (like lists) and &quot;leaf blocks.&quot; That seems straightforward enough,  groups characters into lines and then successively feed &quot;lines&quot; into the &quot;parse markdown&quot; machine until it has digested it into a tree of blocks.</p>
+<p>This text:</p>
+<div class="code-block">&gt; a quote
+&gt; &gt; a quote inside a quote
+&gt; &gt; &gt; a pathological quote inside a quote inside a quote
+</div>
+<p>turns into:</p>
+<div class="code-block">BlockQuote
+    Paragraph
+        String &quot;a quote&quot;
+    BlockQuote
+        Paragraph
+            String &quot;a quote inside a quote&quot;
+        BlockQuote
+            Paragraph
+                String &quot;a pathological quote inside a quote inside a quote&quot;
+</div>
+<p>The current parse contains a cursor into the block tree, indicating which blocks are open.  Initially I tried a literal cursor (i.e. pointer) into the tree, though I eventually simplified down to storing a stack of shared pointers to the lowest opened block, similar to a call stack.</p>
+<div class="code-block">OPEN: [Document][BlockQuote][BlockQuote][BlockQuote][Paragraph]
+</div>
+<h2 id="line-stack">Line stack</h2>
+<p>When the parser receives a line, it can close any number of these blocks, so I keep a separate stack of the current path of the line.  As long as this subset of blocks for the line matches that of the opened block stack then the line is being parsed down the tree to the current document location.  If there&apos;s a difference, the stack of opened blocks gets trimmed so it agrees with the line stack.</p>
+<div class="code-block">OPEN: [Document][BlockQuote][BlockQuote][BlockQuote][Paragraph]
+LINE: [Document]
+
+&quot;&gt; &gt; ## A HEADING INSIDE THE QUOTE! MWAHAHAHA&quot; IS A BlockQuote
+Line
+OPEN: [Document][BlockQuote][BlockQuote][BlockQuote][Paragraph]
+LINE: [Document][BlockQuote]
+
+&quot;&gt; ## A HEADING INSIDE THE QUOTE! MWAHAHAHA&quot; IS A BlockQuote
+Line
+OPEN: [Document][BlockQuote][BlockQuote][BlockQuote][Paragraph]
+LINE: [Document][BlockQuote][BlockQuote]
+
+&quot;## A HEADING INSIDE THE QUOTE! MWAHAHAHA&quot; IS A BlockQuote
+Line
+OPEN: [Document][BlockQuote][BlockQuote][BlockQuote][Paragraph]
+LINE: [Document][BlockQuote][BlockQuote][BlockQuote]
+
+&quot;A HEADING INSIDE THE QUOTE! MWAHAHAHA&quot; IS A AtxHeader2
+Adding child: &quot;AtxHeader2&quot; with &quot;A HEADING INSIDE THE QUOTE! MWAHAHAHA&quot; to BlockQuote
+OPEN: [Document][BlockQuote][BlockQuote][BlockQuote]
+LINE: [Document][BlockQuote][BlockQuote][BlockQuote]
+</div>
+<p>This strategy actually works well, especially considering that a line can have nested elements, like a block quote containing a heading.  However, nested bullets prove tricky to deal with and required special handling for this method.</p>
+<h2 id="visitors">Visitors</h2>
+<p>My parser builds an in-memory tree representation of blocks which can get processed by visitor types. This allows interesting uses, like building a list of references on the page, and for generating a page outline with jumps to headings.  The HTML generation itself is simply a visitor that produces HTMl elements at various points when entering and leaving and visiting block children.</p>
+<p>It was overkill to use a concept for visitors, but I haven&apos;t gotten to play with them much, so it was a fun detour to avoid finishing the blog generator and writing content.</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="kw">concept</span> BlockVisitor <span class="sym">=</span> <span class="kw">requires</span>(T t, std<span class="sym">:</span><span class="sym">:</span>shared_ptr<span class="sym">&lt;</span>Block<span class="sym">&gt;</span><span class="sym">&amp;</span> block) {
+    { t.enter(block) };
+    { t.exit(block) };
+    { t.visit(block) } <span class="sym">-</span><span class="sym">&gt;</span> std<span class="sym">:</span><span class="sym">:</span>convertible_to<span class="sym">&lt;</span>VisitResult<span class="sym">&gt;</span>;
+};</div>
+<h2 id="difficulties">Difficulties</h2>
+<p>Writers don&apos;t often discuss difficulties, but I&apos;d like to mention them. I got stumped thinking about block quotes, lists and list items for a while.  It seems like a normal lex and parse issue, where the tokens are lines and the various block types are the syntactical elements you need to parse.  The idea of the &quot;line stack&quot; originated separately from the &quot;open block stack&quot; as a way to resolve the difficulties of dealing with block quotes, and then special handling for bullets was introduced to allow continuation lines and nested bullet lists.</p>
+<div class="code-block"><span class="cmt">// Remove open blocks which don&apos;t match the given block stack.
+</span><span class="ty">void</span> Context<span class="sym">:</span><span class="sym">:</span>closeUnrelatedBlocks(BlockType lineType)
+{
+    <span class="cmt">// Continuation line.
+</span>    <span class="kw">if</span> (isTopBlock(BlockType<span class="sym">:</span><span class="sym">:</span>ListItem) <span class="sym">&amp;</span><span class="sym">&amp;</span> lineType <span class="sym">!</span><span class="sym">=</span> BlockType<span class="sym">:</span><span class="sym">:</span>BulletedList) {
+        <span class="kw">return</span>;
+    }
+
+    <span class="cmt">// Close all currently open bullets to the right of this bullet&apos;s indent.
+</span>    <span class="kw">if</span> (lineType <span class="sym">=</span><span class="sym">=</span> BlockType<span class="sym">:</span><span class="sym">:</span>BulletedList) {
+        <span class="kw">const</span> <span class="ty">auto</span> indent <span class="sym">=</span> lineIndent;
+        <span class="ty">auto</span> furtherBullet <span class="sym">=</span> std<span class="sym">:</span><span class="sym">:</span>find_if(openBlocks.begin(), openBlocks.end(), [indent](<span class="kw">const</span> <span class="ty">auto</span><span class="sym">&amp;</span> block) <span class="sym">-</span><span class="sym">&gt;</span> <span class="ty">bool</span> {
+            <span class="kw">return</span> block<span class="sym">-</span><span class="sym">&gt;</span>type <span class="sym">=</span><span class="sym">=</span> BlockType<span class="sym">:</span><span class="sym">:</span>BulletedList <span class="sym">&amp;</span><span class="sym">&amp;</span> block<span class="sym">-</span><span class="sym">&gt;</span>indent <span class="sym">&gt;</span> indent;
+        });
+        <span class="kw">if</span> (furtherBullet <span class="sym">!</span><span class="sym">=</span> openBlocks.end()) {
+            <span class="cmt">// Close bullets to the right.
+</span>            openBlocks.resize(<span class="kw">static_cast</span><span class="sym">&lt;</span><span class="ty">uint64_t</span><span class="sym">&gt;</span>(std<span class="sym">:</span><span class="sym">:</span>distance(openBlocks.begin(), furtherBullet) <span class="sym">-</span> <span class="val">1</span>));
+
+            <span class="cmt">// Reset line stack to this location.
+</span>            clearLineStack();
+            <span class="kw">for</span> (<span class="kw">const</span> <span class="ty">auto</span><span class="sym">&amp;</span> block <span class="sym">:</span> openBlocks) {
+                pushLineStack(block<span class="sym">-</span><span class="sym">&gt;</span>type);
+            }
+        }
+        <span class="kw">return</span>;
+    }
+
+    <span class="cmt">//...
+</span></div>
+<p>There&apos;s a certain point in a program where you try a bunch of things that don&apos;t work, and then slowly it seems that little decisions start to magically make things come together or drift apart. The first few ideas I have about architecture usually end up convoluted or unclear. Only after a few cases get implemented, do the patterns emerge for me, and I know whether to keep or change the current program direction. This used to trouble me, and yet it feels comforting since I now expect it and try to enjoy the ride. Only by failing or getting stuck a bunch of times do I finally start to see through the trees to the finish line.</p>
+<h1 id="inline-formatting">Inline formatting</h1>
+<p>CommonMark&apos;s <a href="https://spec.commonmark.org/0.31.2/#phase-2-inline-structure">description of inline structure</a> is definitely quite interesting, using a full idea of a delimiter stack and a doubly-linked list to find appropriate insert locations.</p>
+<p>This drives the question: Do I want to make a blog, or do I want to implement the CommonMark spec?</p>
+<p>Inline formatting is more difficult than you&apos;d expect. I started implementing the algorithm from CommonMark, but went with a simpler idea. The first pass it parses delimiter groups, the second it matches delimiters, and the third it prints the line. A lot more work, but it was a lot easier to reason through.</p>
+</p>
+<h2 id="images">Images</h2>
+<p>I got basic inline formatting and links set up, but wanted to add images. I already have the direct links like <code>[]()</code> and named links like <code>[][]</code> setup, so I needed to handle the <code>!</code> beforehand for images.</p>
+<p>Here&apos;s an example.</p>
+<div class="code-block">This is an image: ![image](image_url)
+</div>
+<p>I realized I can treat <code>!</code> like a delimiter in the inline formatter and then fallthrough into the link handling code, treating <code>!</code> like a flag to emit an image or a plain link. The fallthrough results in double printing the <code>[</code> so I set a flag and try again on next round trip. After fixing and issue with unmatched terminating brackets not printing correctly, it&apos;s time to move on.</p>
+<h1 id="markdown-extras">Markdown extras</h1>
+<p>Having my own Markdown parser means that I can customize it as I want.</p>
+<h2 id="metadata-front-matter">Metadata (&quot;Front Matter&quot;)</h2>
+<p>There&apos;s an optional snippet of metadata allowed in my Markdown files. It&apos;s not much, but it allows me to customize each post, and lets me do things like add a generated table of contents and list of references.</p>
+<div class="code-block">---
+title: Me making a blog
+description: Writing a static site generator and parsing Markdown!
+publish: true
+tags: blog,c++
+bibliography: true
+date: 23 March, 2025
+---
+</div>
+<p>This actually fit really well into the visitor interface I set up for blocks. If the document is empty, it creates a &quot;Metadata&quot; block stores all strings between a starting and heading &quot;thematic break&quot; (the fancy name for <code>---</code>) and then the metadata collector parses each string element child of the Metadata block.</p>
+<h2 id="syntax-highlighting">Syntax highlighting</h2>
+<p>With a fenced code block, the info string after the first fence can select the appropriate highlighter.  With an acceptable lexer tied into some common backend functions to highlight element types you can get syntax highlighting.  There&apos;s no automatic language detection, and I have to write support for every language I want to use, but there&apos;s also no JavaScript or dependencies involved.</p>
+<div class="code-block"><span class="kw">type</span> Example <span class="kw">is</span> <span class="kw">new</span> Integer;</div>
+<p>I made a general C family formatter so I can swap out keywords to get most of the way to decent formatting for languages.  It will need more improvements later, but it works well enough for now.</p>
+<div class="code-block"><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">&quot;core:fmt&quot;</span>
+
+main <span class="sym">:</span><span class="sym">:</span> <span class="kw">proc</span>() {
+    <span class="cmt">// odin code
+</span>}</div>
+<div class="code-block"><span class="ty">void</span> Foo<span class="sym">:</span><span class="sym">:</span>example() <span class="kw">const</span> {
+    <span class="cmt">// ...
+</span>}</div>
+<h1 id="running-locally">Running Locally</h1>
+<p><a href="https://docusaurus.io/">Docusaurus</a> lets you continuously host a site locally while editing and see the updates very quickly, so I wanted a quick way to iterate with my blog generator as well.</p>
+<p>Implementing an HTTP server at some point sounds fun, but for now, I view locally with Python&apos;s built-in <a href="https://docs.python.org/3/library/http.server.html">http.server</a>. This isn&apos;t recommended for production, but python is often available and it&apos;s a simple way to test things locally.</p>
+<div class="code-block">python3 -m http.server
+</div>
+</p>
+<h2 id="reducing-file-saves">Reducing file saves</h2>
+<p>The build writes all outputs initially to memory.  It then reads each output location and only writes to disk if the output has changed.</p>
+<p>The gist for continuous local updates is to monitor the source directory of the blog and when I make a file change to rerun the build step.</p>
+<p>I&apos;ve used <a href="https://man7.org/linux/man-pages/man7/inotify.7.html"><code>inotify</code></a> on Linux for this in the past, but on Windows I needed to use <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/obtaining-directory-change-notifications"><code>DirectoryChangeNotifications</code></a>.</p>
+<p>This worked quite well with my output testing before writing and it only writes anything with an output file change. A neat side effect is that I can move around link reference definitions within my markdown files and it triggers a rebuild, but it doesn&apos;t rewrite the file since it won&apos;t have changes.</p>
+<p>Continuous mode provided quick feedback when doing style updates, simplifying the process of testing out coloring changes.</p>
+</p>
+<h1 id="summary">Summary</h1>
+<p>This was a great learning experience and I thoroughly enjoyed this project much more than I expected.</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://learn.microsoft.com/en-us/windows/win32/fileio/obtaining-directory-change-notifications">Obtaining Directory Change Notifications on Windows</a></li>
+<li>
+<a href="https://spec.commonmark.org/0.31.2/#phase-2-inline-structure">CommonMark Inline Parsing</a></li>
+<li>
+<a href="https://spec.commonmark.org/0.31.2/">CommonMark Spec</a></li>
+<li>
+<a href="https://daringfireball.net/projects/markdown/">Daring Fireball's Markdown Description</a></li>
+<li>
+<a href="https://docusaurus.io/">Docusaurus</a></li>
+<li>
+<a href="https://github.github.com/gfm/">GitHub Flavored Markdown</a></li>
+<li>
+<a href="https://github.com/google/googletest"><code>googletest</code></a></li>
+<li>
+<a href="https://docs.python.org/3/library/http.server.html">Python 3's http.server</a></li>
+<li>
+<a href="https://gohugo.io/"><code>hugo</code></a></li>
+<li>
+<a href="https://man7.org/linux/man-pages/man7/inotify.7.html">inotify</a></li>
+<li>
+<a href="https://jekyllrb.com/"><code>jekyll</code></a></li>
+<li>
+<a href="https://spec.commonmark.org/0.31.2/#link-reference-definitions">CommonMark: Link Reference Definitions</a></li>
+<li>
+<a href="https://spec.commonmark.org/0.31.2/#appendix-a-parsing-strategy">CommonMark Parsing Strategies</a></li>
+<li>
+<a href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html">restructured Text</a></li>
+<li>
+<a href="https://www.sphinx-doc.org"><code>sphinx</code></a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing a verified Forth VM in Ada/SPARK" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing Anteforth, a Forth-like in SPARK</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#writing-a-forth-like-in-spark">Writing a "Forth-like" in SPARK</a></li>
+<li><a href="#forth-background">Forth Background</a></li>
+<li><a href="#verification-with-spark">Verification with SPARK</a></li>
+<li><a href="#it-s-got-electrolytes-and-verified">"It's Got Electrolytes" and "Verified"</a></li>
+<li><a href="#to-words">To Words</a></li>
+<li><a href="#executing-words">Executing words</a></li>
+<li><a href="#instructions">Instructions</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="writing-a-forth-like-in-spark">Writing a &quot;Forth-like&quot; in SPARK</h1>
+<p>This is the second stop on my journey writing a verified Forth.  The final goal would be to make a verified Forth (like <a href="https://archive.fosdem.org/2020/schedule/event/forth_new_synthesis/">seedForth</a>) which could be used as a compiler backend as described on the <a href="https://forum.ada-lang.io/t/ada-bootstrap-compiler-funding-thanks-to-nlnet/2014/28">Ada forum</a>.</p>
+<p>Previously, I wrote a <a href="/2025/06/10/postfix-calculator.html">postfix calculator</a> to learn more about the SPARK subset of Ada, and to see if a small postfix calculator could have its operations verified.  I&apos;ve never worked with Forth before, so this step was to understand that language more and the implementation issues.</p>
+</p>
+<h1 id="forth-background">Forth Background</h1>
+<p>Forth is a neat concatenative programming language in how much power it can get from its minimal syntax. The primary element in the syntax is the word, represented in text as a sequence of non-whitespace characters.</p>
+<div class="code-block">10 20 + . ( add 10 and 20 and print the result )
+</div>
+<p>Words operate on a variety of data structures: a stack containing data (parameter stack), a stack containing return addresses (return stack), a text input (terminal input buffer), and a dictionary of words.</p>
+<p>Forth programs are lists of words.  Words do everything, from comments, to doing arithmetic, to starting and terminating definitions of custom words.</p>
+<div class="code-block">( left parentheses is a word that treats everything until right parentheses as a comment )
+
+( add 10 and 20 )
+10 20 +
+
+( squares the top of the stack )
+: SQUARE DUP * ;
+</div>
+<p>Forth&apos;s directness promotes its use in bootstrapping systems, and a lot of implementations I came across directly emitted assembly. I wanted to avoid complications dealing with assembly and its implications with the prover, so instead I implemented a Forth-like virtual machine.  I&apos;ll call it &quot;Forth-like&quot; since I&apos;m not sure what subset of language features minimally constitutes a &quot;Forth,&quot; and I&apos;m not looking to raise anyone&apos;s ire or bikeshed.</p>
+<p>Wanting to run it interactively and from a file, I implemented a tokenizer.  Some functions typically implemented in the Forth itself (like the text interpreter) were done in SPARK.  This allows some behavior to be verified, like that the tokenizer terminates.</p>
+<p>The first Apollo mission didn&apos;t immediately land on the moon.  Maybe the next generation of what I write will be a seedForth-like implementation.</p>
+<p>My goal was to support defining custom words and have some form of control flow. I didn&apos;t get to variables and constants (<code>!</code> or <code>@</code>) or to <code>DOES&gt;</code>.  This has been a great experience so far, so I might add those in the future.</p>
+<h1 id="verification-with-spark">Verification with SPARK</h1>
+<p>This Forth implementation verifies specific behavior with SPARK as begun and <a href="/2025/06/10/postfix-calculator.html#what-does-verified-mean-here">described in the postfix calculator project</a>. If the VM remains in an &quot;Ok&quot; state provided no error occurs with these errors detected and caught:</p>
+<ul>
+    <li>arithmetic would overflow or underflow</li>
+    <li>data or return stack overflowed or underflowed</li>
+    <li>any word, name, and instruction allocations failed</li>
+    <li>any invalid word attempts execution</li>
+</ul>
+<p>Operations are proved to various degrees.</p>
+<p>Stack operations prove that their results are correct, such as <code>ROT</code> (rotate).  <code>1 2 3</code> on the stack is proven to result in <code>2 3 1</code> on the stack, unless there&apos;s not enough elements, which will result in an error.</p>
+<p>This is what the description of <code>ROT</code> looks like.</p>
+<div class="code-block"><span class="kw">procedure</span> Op_Rotate (V : <span class="kw">in</span> <span class="kw">out</span> VM)
+<span class="kw">with</span>
+    Global         => <span class="kw">null</span>,
+    Pre            => Is_Running (V),
+    Contract_Cases =>
+    (Param_Stack_Size (V) < 3 =>
+        V.Status = Param_Stack_Underflow
+        <span class="kw">and</span> <span class="kw">then</span> Only_Status_Changed (V, V'Old),
+    <span class="kw">others</span>                   =>
+        (Param_Stack_Size (V) = Param_Stack_Size (V'Old)
+        <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 0) = Param_Peek (V'Old, 2)
+        <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 1) = Param_Peek (V'Old, 0)
+        <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 2) = Param_Peek (V'Old, 1)
+        <span class="kw">and</span> <span class="kw">then</span> Param_Stack_Equal_From_Bottom_Until
+                    (V, V'Old, V.Param_Top - 3)
+        <span class="kw">and</span> <span class="kw">then</span> Only_Param_Stack_Changed (V, V'Old)));</div>
+<p>This procedure does not depend on any global variables:</p>
+<div class="code-block">Global => <span class="kw">null</span></div>
+<p>The virtual machine must be running:</p>
+<div class="code-block">Pre => Is_Running (V)</div>
+<p><code>Contract_Cases</code> provides different guarantees based on which condition matches when entering the procedure.</p>
+<p>If there&apos;s not enough values, then an error is signaled:</p>
+<div class="code-block">Contract_Cases =>
+    (Param_Stack_Size (V) < 3 =>
+        V.Status = Param_Stack_Underflow
+        <span class="kw">and</span> <span class="kw">then</span> Only_Status_Changed (V, V'Old),</div>
+<p>Otherwise, the values have been rotated appropriately and nothing else in the VM was changed.</p>
+<div class="code-block"><span class="kw">others</span>                   =>
+    (Param_Stack_Size (V) = Param_Stack_Size (V'Old)
+    <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 0) = Param_Peek (V'Old, 2)
+    <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 1) = Param_Peek (V'Old, 0)
+    <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V, 2) = Param_Peek (V'Old, 1)
+    <span class="kw">and</span> <span class="kw">then</span> Param_Stack_Equal_From_Bottom_Until (V, V'Old, V.Param_Top - 3)
+    <span class="kw">and</span> <span class="kw">then</span> Only_Param_Stack_Changed (V, V'Old)));</div>
+<p><code>Param_Stack_Equal_From_Bottom_Until</code> is a nifty and small function I wrote to help the stack checks, and it uses Ada&apos;s quantified expressions:</p>
+<div class="code-block"><span class="kw">function</span> Param_Stack_Equal_From_Bottom_Until
+    (A, B : VM; Depth : Natural) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (<span class="kw">for</span> <span class="kw">all</span> X <span class="kw">in</span> 1 .. Depth => A.Params (X) = B.Params (X))
+<span class="kw">with</span> Ghost, Global => <span class="kw">null</span>, Pre => Depth <= Max_Param_Stack_Size;</div>
+<p>The prover doesn&apos;t understand what subprograms do, just their preconditions and their postconditions.  Anything not listed in a postcondition, or guaranteed elsewhere by a <code>Type_Invariant</code>, <code>Abstract_State</code>, <code>Static_Predicate</code> or <code>Dynamic_Predicate</code> has an unknown state.  This opaqueness is crucial to understand as I had multiple occasions where the solution to fix a proof was simply, &quot;I need to add more postconditions.&quot;</p>
+<p>Other words, like <code>:</code>, are encoded with a few guarantees on correctness, partially due to time constraints, which leads to the next point.</p>
+<div class="code-block"><span class="kw">procedure</span> Op_Left_Bracket (V : <span class="kw">in</span> <span class="kw">out</span> VM)
+<span class="kw">with</span> Global => <span class="kw">null</span>, Pre => Is_Running (V), Post => <span class="kw">not</span> Is_Compiling (V);</div>
+<h1 id="it-s-got-electrolytes-and-verified">&quot;It&apos;s Got Electrolytes&quot; and &quot;Verified&quot;</h1>
+<p>SPARK guarantees some checks.  Absence of Runtime Errors means no uncaught exceptions get thrown, no out of bounds accesses are possible, and no arithmetic overflows and underflows can occur.  These always get checked.</p>
+<p>Subprograms get proved that their outputs meet the postconditions when the preconditions are met.</p>
+<p>However...</p>
+<p>Preconditions and postconditions are only as good as what you feed into them. If you feed in junk, you&apos;re going to get out junk, as shown by this funny thing I forgot to replace.</p>
+<p>All word codes are equal!</p>
+<div class="code-block"><span class="kw">overriding</span>
+<span class="kw">function</span> <span class="str">&quot;=&quot;</span> (A, B : Word_Code) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (True);</div>
+<p>When iterating, I found that preliminarily putting in basic guardrails helped stand up functionality.  Then slowly coaxing more and more constraints on each subprogram helped prevent getting too bogged down in proofs so that it felt like I was still making progress.  It was painful to set up a bunch of proofs, find out that I was structuring something incorrectly and then ripping it out.</p>
+<p>This also means that adding behavior while constructing your program can result in cases where the code would be valid, but because the constraints haven&apos;t been put in place, its usage is more limited.  An example of this is when adding new state to the virtual machine, any previously proved subprograms will not have verified that the new state did not change. This can cause failing proofs when additional preconditions or postconditions are added in code which calls these subprograms.</p>
+<p>This incremental ability to proof is interesting as you can mix SPARK and Ada code.  You could start a project in Ada and then slowly move stable sections into SPARK.  I&apos;d suspect a critical system would be specified more in-depth before implementation, to prevent missed checks like the one above.</p>
+<h1 id="to-words">To Words</h1>
+<p>Custom word definitions in Forth are called &quot;colon definitions.&quot;  Having custom word definitions was critically important to me as an implementer, since it means that it is closer to a &quot;true&quot; implementation of a programming language.</p>
+<p>My verified postfix calculator hard coded the mapping of tokens to operations, so I needed a way to do this at runtime.</p>
+<p>Since I am sans pointers in SPARK, this turned into an array each for word headers and word names.  &quot;Word headers&quot; describe the name and how a word is executed.</p>
+<div class="code-block"><span class="cmt">--  A consistently sized description of a word.
+</span><span class="kw">type</span> Word_Header <span class="kw">is</span> <span class="kw">record</span>
+    <span class="cmt">-- Range of the user-usable name for this word.
+</span>    Name_Start : Name_Index := 1;
+    Name_End   : Name_Index := 1;
+    Code       : Word_Code := (Form => Form_Intrinsic, Intrinsic => Nop);
+    Immediate  : Boolean := False;
+<span class="kw">end</span> <span class="kw">record</span>;
+
+<span class="kw">type</span> Word_Table <span class="kw">is</span> <span class="kw">record</span>
+    <span class="cmt">-- Character storage for user inputs for all words.
+</span>    Names           : String (1 .. Word_Name_Storage_Size) := [<span class="kw">others</span> => ' '];
+    Name_Space_Used : Name_Space_Count := 0;
+    Words           : Word_Array;
+    Words_Used      : Word_Count := 0;
+<span class="kw">end</span> <span class="kw">record</span>;</div>
+<p>Indexes into the word table doubled as &quot;execution tokens&quot; in this Forth-like.</p>
+<div class="code-block">Max_Words : <span class="kw">constant</span> := 256;
+<span class="kw">subtype</span> Word_Count <span class="kw">is</span> Natural <span class="kw">range</span> 0 .. Max_Words;
+<span class="kw">subtype</span> Word_Index <span class="kw">is</span> Word_Id <span class="kw">range</span> 1 .. Max_Words;
+<span class="kw">type</span> Word_Array <span class="kw">is</span> <span class="kw">array</span> (Word_Index) <span class="kw">of</span> Word_Header;</div>
+<p>Using Ada&apos;s type system, I created different semantically unique and distinct integer types for the indexes into these arrays.  Subtypes allow introduction of new bounds which SPARK will use in proofs.  If you coerce something into another type, SPARK will force it to previously been bounds checked or proved to be a valid conversion.  This ensures indices into array are always valid.</p>
+<p>Using a bulk allocation for word names also isn&apos;t a big deal since Ada&apos;s strings are character arrays (slices) with a length and not null-terminated.</p>
+<div class="code-block"><span class="kw">procedure</span> Allocate_Word
+    (Table     : <span class="kw">in</span> <span class="kw">out</span> Word_Table;
+    Name      : String;
+    Code      : Word_Code;
+    Immediate : Boolean;
+    Has_Value : Boolean)
+<span class="kw">with</span>
+    Pre  =>
+        Can_Allocate_Word (Table)
+        <span class="kw">and</span> <span class="kw">then</span> Name'Length <span class="kw">in</span> Word_Length
+        <span class="kw">and</span> <span class="kw">then</span> Can_Allocate_Name (Table, Name'Length),
+    Post =>
+        Table.Words (Word_Index (Table.Words_Used)).Name_Start
+        = Table.Name_Space_Used'Old + 1
+        <span class="kw">and</span> <span class="kw">then</span> Table.Words (Word_Index (Table.Words_Used)).Name_End
+                = Table.Words (Word_Index (Table.Words_Used)).Name_Start
+                    - 1
+                    + Name'Length
+        <span class="kw">and</span> <span class="kw">then</span> Table.Words_Used = Table.Words_Used'Old + 1
+        <span class="kw">and</span> <span class="kw">then</span> Table.Name_Space_Used
+                = Table.Name_Space_Used'Old + Name_Space_Count (Name'Length);</div>
+<p>The <code>Pre</code> checks catch instances where the appropriate checks for allocation have not yet been made.  When this procedure is called from SPARK code, those preconditions are guaranteed.</p>
+<div class="code-block"><span class="cmt">--  The appropriate name was given from the table.
+</span>Table.Words (Word_Index (Table.Words_Used)).Name_Start = Table.Name_Space_Used'Old + 1
+<span class="kw">and</span> <span class="kw">then</span> Table.Words (Word_Index (Table.Words_Used)).Name_End = Table.Words (Word_Index (Table.Words_Used)).Name_Start - 1 + Name'Length
+
+<span class="cmt">--  One additional word was allocated.
+</span><span class="kw">and</span> <span class="kw">then</span> Table.Words_Used = Table.Words_Used'Old + 1
+
+<span class="cmt">--  The correct amount of allocated space was used.
+</span><span class="kw">and</span> <span class="kw">then</span> Table.Name_Space_Used = Table.Name_Space_Used'Old + Name_Space_Count (Name'Length);</div>
+<h1 id="executing-words">Executing words</h1>
+<p>My initial plan for implementing words was to have built-ins which were native Ada procedures, whereas compiled functions would run the address interpreter to run provided code.</p>
+<p>A big hiccup there is that SPARK doesn&apos;t allow side effects when using access to subprograms (function pointers).</p>
+<p>This resulted in me splitting word code across three boundaries, instead of the two I was hoping.  I used a discriminant (tagged union) for the executable part of each word, with instructions stored collectively in one large block, similar to names.</p>
+<div class="code-block"><span class="kw">type</span> Word_Form <span class="kw">is</span> (Form_Intrinsic, Form_Procedure_Access, Form_Instructions);
+
+<span class="kw">type</span> Op_Intrinsic <span class="kw">is</span> (Nop, Clear_Error, Words, Print, CR, Print_Stack, Dump_VM);
+<span class="kw">type</span> Op_Procedure <span class="kw">is</span> <span class="kw">not</span> <span class="kw">null</span> <span class="kw">access</span> <span class="kw">procedure</span> (V : <span class="kw">in</span> <span class="kw">out</span> VMS.VM);
+
+<span class="kw">type</span> Word_Code (Form : Word_Form := Form_Intrinsic) <span class="kw">is</span> <span class="kw">record</span>
+    <span class="kw">case</span> Form <span class="kw">is</span>
+        <span class="kw">when</span> Form_Intrinsic =>
+            Intrinsic : Op_Intrinsic := Nop;
+
+        <span class="kw">when</span> Form_Procedure_Access =>
+            Builtin : Op_Procedure;
+
+        <span class="kw">when</span> Form_Instructions =>
+            Start : Instruction_Address := 1;
+    <span class="kw">end</span> <span class="kw">case</span>;
+<span class="kw">end</span> <span class="kw">record</span>;</div>
+<p>Executing words looks roughly like this:</p>
+<div class="code-block"><span class="kw">procedure</span> Execute (V : <span class="kw">in</span> <span class="kw">out</span> VM; Op : Word_Id) <span class="kw">is</span>
+<span class="kw">begin</span>
+    <span class="cmt">--  Check if stopped
+</span>
+    <span class="cmt">--  Ensure word id is valid
+</span>
+    <span class="kw">case</span> V.Words.Words (Op).Code.Form <span class="kw">is</span>
+        <span class="kw">when</span> Form_Intrinsic        =>
+            <span class="cmt">--  Switch on the stored intrinsic to execute.
+</span>
+        <span class="kw">when</span> Form_Procedure_Access =>
+            <span class="cmt">--  Call the stored builtin procedure
+</span>
+        <span class="kw">when</span> Form_Instructions     =>
+            <span class="cmt">--  Start or push return address and jump to the stored instruction start.
+</span>    <span class="kw">end</span> <span class="kw">case</span>;
+<span class="kw">end</span> Execute;</div>
+<h1 id="instructions">Instructions</h1>
+<p>Instructions were handled roughly the same way as names.  A big bulk storage for possible instructions, and a count of the number of instructions. The address interpreter gets kicked off or continued when executing a user-defined word.</p>
+<p>SPARK ensures that no invalid instructions get executed and that the instruction pointer stays in the array of valid instructions.</p>
+<div class="code-block"><span class="cmt">--  Instruction memory of execution tokens used for compiled words.
+</span>Instructions : Cell_Array (1 .. Max_Instructions) := [<span class="kw">others</span> => 0];
+
+<span class="cmt">--  Instruction pointer.  Points to the next instruction to execute when
+</span><span class="cmt">--  executing the current instruction.
+</span>IP : Instruction_Address := 1;
+
+<span class="cmt">--  The total number of instructions written into the instruction array.
+</span><span class="cmt">--  Only this number of instructions are valid and should be run.
+</span><span class="cmt">--  This is only updated when exiting compiling mode.
+</span>Num_Instructions : Instruction_Count := 0;</div>
+<p>SPARK allowed proving properties of some words which write into this instruction block.</p>
+<p>For instructions, <code>IF</code> verifies the current instruction position gets written to the top of the stack.  The idea here is that <code>IF</code> inserts a conditional jump and then a distance to jump.  The distance isn&apos;t known, so an empty value gets written in the instruction array and filled in later.  The value placed at the top of the stack is that location in the instruction array to fill in.</p>
+<div class="code-block"><span class="kw">procedure</span> Op_If (V : <span class="kw">in</span> <span class="kw">out</span> VM)
+<span class="kw">with</span>
+Pre  => Is_Running (V),
+Post =>
+    (<span class="kw">not</span> Is_Running (V))
+    <span class="kw">or</span> <span class="kw">else</span> (Is_Running (V)
+            <span class="kw">and</span> <span class="kw">then</span> Same_Words (V, V'Old)
+            <span class="kw">and</span> <span class="kw">then</span> Same_Address_Interpreter (V, V'Old)
+            <span class="kw">and</span> <span class="kw">then</span> V.Param_Top = V'Old.Param_Top + 1
+            <span class="kw">and</span> <span class="kw">then</span> V.Params (V.Param_Top) = V.Num_Instructions
+            <span class="kw">and</span> <span class="kw">then</span> V.Num_Instructions = V.Num_Instructions'Old + 2);</div>
+<p>That instruction place must be a valid instruction address, and <code>THEN</code> must write an appropriate and valid instruction address.  This just verifies that the jump stays in the array, it doesn&apos;t verify that this jump doesn&apos;t jump outside the instructions of the current word being defined.  This could be done by adding more state to track the first instruction, but I ran out of time during the holidays.</p>
+<div class="code-block"><span class="kw">procedure</span> Op_Then (V : <span class="kw">in</span> <span class="kw">out</span> VM)
+<span class="kw">with</span>
+Pre  => Is_Running (V),
+Post =>
+    (<span class="kw">not</span> Is_Running (V))
+    <span class="kw">or</span> <span class="kw">else</span> (V.Param_Top = V'Old.Param_Top - 1
+            <span class="kw">and</span> <span class="kw">then</span> Param_Peek (V'Old) <span class="kw">in</span> Instruction_Address
+            <span class="kw">and</span> <span class="kw">then</span> Max_Instructions - Param_Peek (V'Old)
+                        >= V.Instructions
+                            (Positive (Param_Peek (V'Old))
+                            <span class="cmt">--  The jump written should be a valid IP.
+</span>                            )
+            <span class="kw">and</span> <span class="kw">then</span> Is_Valid_Jump
+                        (V
+                        <span class="cmt">--  Origin
+</span>                        ,
+                        Param_Peek
+                            (V'Old
+                            <span class="cmt">--  Offset
+</span>                            )
+                        + V.Instructions (Positive (Param_Peek (V'Old)))));
+
+<span class="kw">function</span> Is_Valid_Jump (V : VM; IP : Cell) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (IP >= 1 <span class="kw">and</span> <span class="kw">then</span> IP <= V.Num_Instructions + 1)
+<span class="kw">with</span> Global => <span class="kw">null</span>;</div>
+<h1 id="next-steps">Next Steps</h1>
+<p>The biggest gaps in the implementation are that it does not support variables and constants and that it&apos;s missing <code>DOES&gt;</code>. Supporting floating point would also be a good addition.</p>
+<p>As-is, the current VM is interesting, but not super useful.  It will require another level of restructuring so that the VM instead of just being a VM, different backends could be used.  This would allow emitting x86 or ARM assembly, or creation of ELFs or PE files.</p>
+<h1 id="summary">Summary</h1>
+<p>I wrote a Forth-like virtual machine in Ada/SPARK, with a lot of proved properties.  I wasn&apos;t entirely sure it was a doable project when I started, but it looks like a third pass would move me much closer to a more generally usable Forth.</p>
+<p>Working with the SPARK subset of Ada continues to get easier and faster.  When I started first trying to write any verified code, it felt like a complete slog, like I was etching every line of code with a chisel on stone. There&apos;s been a lot of improvements making it simpler to get started, such as integration with Alire. It also seems easier to get proofs to work, it definitely seems like there&apos;s been improvements on SPARK side, though I&apos;ve learned better ways of writing SPARK code.</p>
+<p>Learning about Forth and writing a Forth-like was a lot of fun, and I&apos;d highly recommend trying out Forth if you&apos;ve never use it before.</p>
+<p><a href="https://github.com/pyjarrett/anteforth">Anteforth&apos;s code is available here</a>.</p>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A venture in writing a larger SPARK project." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing a Verified Postfix Expression Calculator in Ada/SPARK</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#writing-a-verified-postfix-expression-calculator">Writing a Verified Postfix Expression Calculator</a></li>
+<ul class="outline">
+<li><a href="#why-ada-spark">Why Ada/SPARK?</a></li>
+<li><a href="#what-does-verified-mean-here">What does "verified" mean here?</a></li>
+    </ul>
+<li><a href="#operations-of-a-postfix-expression-calculator">Operations of a Postfix Expression Calculator</a></li>
+<li><a href="#process">Process</a></li>
+<li><a href="#setup">Setup</a></li>
+<li><a href="#annotating-code-to-prove">Annotating code to prove</a></li>
+<li><a href="#execution">Execution</a></li>
+<ul class="outline">
+<li><a href="#dangers-of-calling-spark-code">Dangers of calling SPARK code</a></li>
+    </ul>
+<li><a href="#the-easiest-check-you-can-write">The easiest check you can write</a></li>
+<li><a href="#initial-steps-and-hurdles">Initial steps and hurdles</a></li>
+<ul class="outline">
+<li><a href="#floating-point-simplifications">Floating point simplifications</a></li>
+<li><a href="#using-enough-provers-and-iterating-faster">Using enough provers, and iterating faster</a></li>
+    </ul>
+<li><a href="#my-process">My process</a></li>
+<ul class="outline">
+<li><a href="#conditional-expressions">Conditional expressions</a></li>
+    </ul>
+<li><a href="#expression-functions">Expression functions</a></li>
+<li><a href="#debugging-proofs">Debugging proofs</a></li>
+<ul class="outline">
+<li><a href="#assume">Assume</a></li>
+<li><a href="#additional-asserts">Additional Asserts</a></li>
+<li><a href="#assert-a-lot-more-than-you-need">Assert A LOT more than you need</a></li>
+<li><a href="#contract_cases">Contract_Cases</a></li>
+    </ul>
+<li><a href="#sharp-edges">Sharp edges</a></li>
+<ul class="outline">
+<li><a href="#private-subprograms-and-invariants">Private subprograms and invariants</a></li>
+<li><a href="#loop-invariants">Loop invariants</a></li>
+    </ul>
+<li><a href="#effects-of-machine-arithmetic">Effects of Machine Arithmetic</a></li>
+<li><a href="#how-was-writing-formally-verified-code">How was writing formally verified code?</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="writing-a-verified-postfix-expression-calculator">Writing a Verified Postfix Expression Calculator</h1>
+<p><a href="https://learn.adacore.com/courses/intro-to-spark/index.html">SPARK</a> is an Ada subset which can be used for formal verification and someone pitched a SPARK verified <a href="https://archive.fosdem.org/2020/schedule/event/forth_new_synthesis/">seedForth</a> implementation <a href="https://forum.ada-lang.io/t/ada-bootstrap-compiler-funding-thanks-to-nlnet/2014/28">on the Ada forums</a> as a way of bootstrapping a new Ada compiler. I&apos;ve heard about Forth in passing for a while, but never looked into it much before, so this sent me down a fun rabbit hole reading the first third of <a href="https://www.forth.com/starting-forth/">Starting Forth</a> in a single night.</p>
+</p>
+</p>
+</p>
+</p>
+</p>
+<p>Forth looks really neat in its simplicity, but I don&apos;t have training in software verification and wanted to boil down the problem to a smaller subset, so <a href="https://github.com/pyjarrett/postfix_calc">I decided to write a postfix calculator in Ada/SPARK.</a></p>
+<h2 id="why-ada-spark">Why Ada/SPARK?</h2>
+<p>I&apos;ve done quite a few side projects in Ada, and the SPARK subset works alongside it rather unobtrusively since the two can coexist in the same file.  The SPARK tools also install directly from <a href="https://alire.ada.dev/">Alire</a>, the Ada package manager and toolchain tool minimizing setup pain.  SPARK also has a strong history of production code, such as in the Eurofighter Typhoon, and <a href="https://www.adacore.com/press/ada-and-spark-enter-the-automotive-iso-26262-market-with-nvidia">in cars</a> and <a href="https://www.nvidia.com/en-us/on-demand/session/gtcsj20-s21122/">in firmware</a>.</p>
+</p>
+<h2 id="what-does-verified-mean-here">What does &quot;verified&quot; mean here?</h2>
+<p>I decided to pursue never overflowing numerically, having no runtime errors, and to obeying all given preconditions and postconditions.  AdaCore has a whole level system describing various levels of proof that I joking call the <a href="https://docs.adacore.com/spark2014-docs/html/ug/en/usage_scenarios.html#levels-of-spark-use">&quot;precious metal and mineral scale&quot;</a>.  What I&apos;m trying to do looks like &quot;Gold&quot; level, the amalgamation of the lower levels which are &quot;absence of run-time errors&quot; and &quot;initialization and correct data flow&quot;, plus &quot;proof of key integrity properties.&quot;</p>
+<p>Simplified:</p>
+<ul>
+    <li>no uninitialized data usage</li>
+    <li>no unintended global variable access</li>
+    <li>no runtime exceptions can be raised</li>
+    <li>all conditions are met when calling a subprogram (preconditions)</li>
+    <li>all conditions are met when exiting a subprogram (postconditions)</li>
+</ul>
+<p>I was also able to verify other things about program correctness, such as that <code>+</code> leaves the appropriate result on the top of the stack, and also that the calculator will always terminate given a command string.</p>
+</p>
+<h1 id="operations-of-a-postfix-expression-calculator">Operations of a Postfix Expression Calculator</h1>
+<p>Normally we&apos;re taught to write our mathematical operations using &quot;infix&quot; notation, where the operators are between the values to calculate, like &quot;1 + 2&quot;. Postfix puts the operands first and then the operations, like &quot;1 2 +&quot;.</p>
+<p>The program processes inputs left to right, number values are &quot;pushed&quot; onto the top of the stack, and operations can &quot;pop&quot; values off the stack and push new values onto the stack. Operations can be defined arbitrarily in Forth to operate on and manipulate the stack, but for now I&apos;m just going to stick some basic operations for a calculator.</p>
+<ul>
+    <li><code>+</code> - add the top two numbers and push the result</li>
+    <li><code>-</code> - subtract the top two numbers and push the result</li>
+    <li><code>*</code> - multiply the top two numbers and push the result</li>
+    <li><code>/</code> - divide the top two numbers and push the result</li>
+    <li><code>negate</code> - pop the top and push the negated value</li>
+    <li><code>dup</code> - duplicate the top value on the stack</li>
+    <li><code>.</code> - print the top value on the stack</li>
+</ul>
+<p>Adding, subtracting, multiplying and dividing each operate on the top two values of the stack. These operations remove them, calculate the result, and then place that value on the stack.</p>
+<h1 id="process">Process</h1>
+<p>In the same spirit of <a href="https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell">&quot;Functional Core, Imperative Shell&quot;</a>, I decided to go with &quot;Verified Core, Unverified Shell&quot; since Ada and SPARK code can coexist in the same project, I could verify the machine and maybe the lexer/parser and then write a thin layer on top for input and output.</p>
+</p>
+<p>The architecture is this:</p>
+<ul>
+    <li>an unverified Ada wrapper for input/output</li>
+    <li>a SPARK verified <code>Machine</code>, which is the calculator.  I called it a &quot;Machine&quot; to not have to rename everything if I fork this project to try to implement some flavor of Forth</li>
+    <li>a SPARK verified <code>Scanner</code>, verified to produce tokens which contain no whitespace</li>
+</ul>
+<h1 id="setup">Setup</h1>
+<p>If I want to write a program in Ada/SPARK I&apos;m going to need a toolchain, and then I&apos;m going to need a prover.  <a href="https://alire.ada.dev/">Alire</a> lets you install Ada toolchains, and it also lets you install GNATprove to run provers.</p>
+<p>Installing <code>gnatprove</code> is easy:</p>
+<div class="code-block">alr with gnatprove
+</div>
+<p>Now to run the prover:</p>
+<div class="code-block">alr gnatprove
+</div>
+<blockquote>
+    <p>This simple command line caused a lot of issues for me since it runs only one prover with default settings.  A more complicated command line was needed later for proving.</p>
+</blockquote>
+</p>
+<h1 id="annotating-code-to-prove">Annotating code to prove</h1>
+<p>SPARK is an Ada subset, and you can mix Ada code and SPARK code. SPARK can be enabled and disabled on a per package and even a per subprogram (i.e. &quot;function&quot;) basis using the <code>SPARK_Mode</code> aspect.</p>
+<div class="code-block"><span class="kw">package</span> Machines
+   <span class="kw">with</span> SPARK_Mode => On
+
+   <span class="cmt">-- ...
+</span>
+   <span class="kw">function</span> To_Machine_Op (Input : String) <span class="kw">return</span> Machine_Op
+   <span class="kw">with</span> SPARK_Mode => Off;
+
+   <span class="cmt">-- ...
+</span><span class="kw">end</span> Machines;</div>
+<h1 id="execution">Execution</h1>
+<p>Running the calculator should operate like this:</p>
+<ul>
+    <li>while not done:<ul>
+            <li>read a line of text input</li>
+            <li>split the text into tokens</li>
+            <li>if the token is a number, push it onto the stack</li>
+            <li>if the token is an operation, execute it</li>
+        </ul>
+    </li>
+</ul>
+<p>The wrapper can be written in plain Ada and call the appropriate SPARK code directly.  This looks exactly as if the SPARK code were written in plain Ada:</p>
+<p>Driver code:</p>
+<div class="code-block"><span class="cmt">--  Pass user input into the scanner
+</span>Scanners.Load_Input (S, Input);
+      <span class="cmt">-- ^
+</span>      <span class="cmt">-- This is SPARK code!
+</span></div>
+<p>This is what is being called:</p>
+<div class="code-block"><span class="kw">procedure</span> Load_Input (Self : <span class="kw">in</span> <span class="kw">out</span> Scanner; Input : String)
+<span class="kw">with</span>
+  Depends        => (Self => +Input),
+  Pre            => Input'Length <= Max_Input_Length,
+  Contract_Cases =>
+    (Input'Length = 0 =>
+       Remaining_Characters (Self) = 0
+       <span class="kw">and</span> <span class="kw">then</span> <span class="kw">not</span> Has_More_Characters (Self)
+       <span class="kw">and</span> <span class="kw">then</span> Input_Size (Self) = 0,
+     <span class="kw">others</span>           =>
+       Remaining_Characters (Self) = Input'Length
+       <span class="kw">and</span> <span class="kw">then</span> Has_More_Characters (Self)
+       <span class="kw">and</span> <span class="kw">then</span> Input_Size (Self) = Input'Length);</div>
+<h2 id="dangers-of-calling-spark-code">Dangers of calling SPARK code</h2>
+<p>There&apos;s a weird bit in the above SPARK code which is the precondition for that SPARK procedure:</p>
+<div class="code-block">  Pre => Input'Length <= Max_Input_Length,</div>
+<p>If you&apos;re using a verified component, you still need to abide by the precondition contracts expected by that code. Verification is useless if you don&apos;t follow the conditions under which it has been proved. The easiest way I found to abide by this is to limit the exposed public interface to subprograms with no preconditions.</p>
+<p>Running with runtime contract checking enables finds and report these issues.</p>
+<div class="code-block">raised ADA.ASSERTIONS.ASSERTION_ERROR : failed precondition from scanners.ads:50
+[D:\dev\ada\postfix_calc\bin\postfix_calc.exe]
+0x7ff7817ef2c6 Ada.Finalization at s-assert.adb:44
+0x7ff78182bf3e Postfix_Calc at scanners.ads:50
+0x7ff78182586f Postfix_Calc at postfix_calc.adb:21
+0x7ff78182ade0 Postfix_Calc at b__postfix_calc.adb:254
+0x7ff7817e133e __tmainCRTStartup at ???
+0x7ff7817e1144 mainCRTStartup at ???
+[C:\WINDOWS\System32\KERNEL32.DLL]
+0x7ffd1a8de8d5
+[C:\WINDOWS\SYSTEM32\ntdll.dll]
+0x7ffd1b87c5da
+</div>
+<p>These can be turned on in the <code>alire.toml</code>:</p>
+<div class="code-block">[build-switches]
+Development.Contracts = &quot;Yes&quot;
+</div>
+<p>Preconditions, postconditions, invariants and static predicates are also all valid Ada code.  You can add them in normal Ada code and enable runtime checks for them in unverified Ada code across the program or only for specific packages.</p>
+<h1 id="the-easiest-check-you-can-write">The easiest check you can write</h1>
+<p>The easiest check you can write is a description of &quot;has no global dependencies.&quot;</p>
+<div class="code-block"><span class="kw">function</span> Status (Self : Machine) <span class="kw">return</span> Machine_Status
+<span class="kw">with</span> Global => <span class="kw">null</span>;</div>
+<p>This check can be enforced across an entire package instead by using the <code>Pure</code> aspect.  <code>Pure</code> also works in regular Ada to ensure that a function or procedure only uses what is passed into it and that the package has no global state.</p>
+<div class="code-block"><span class="kw">package</span> Scanners
+  <span class="kw">with</span> SPARK_Mode => On, Pure
+<span class="kw">is</span></div>
+<h1 id="initial-steps-and-hurdles">Initial steps and hurdles</h1>
+<p>I targeted writing the calculator &quot;machine&quot; first.  The basic iteration loop was to write code and then run GNATprove.  It felt very similar to doing test-driven development.  SPARK&apos;s &quot;stone level&quot; requires valid SPARK code, so there&apos;s no reason for a separate build step.</p>
+<p>The machine description heavily leverages Ada/SPARK&apos;s type system, where the derived types (<a href="https://ada-lang.io/docs/arm/AA-3/AA-3.4">not derived as in object-oriented programming</a>) are new nominal types which cannot be mixed, whereas subtypes are related types with additional constraints.  The compiler and provers understand these constriants and use them for runtime and static range checks.  SPARK takes this compiler information and supercharges it by feeding them into the provers, ensuring that assignments and operations pass bounds checks.</p>
+</p>
+<div class="code-block"><span class="kw">type</span> Machine_Status <span class="kw">is</span> (Ok, Stack_Overflow, Stack_Underflow, Value_Out_Of_Bounds);
+<span class="kw">type</span> Value <span class="kw">is</span> <span class="kw">new</span> Interfaces.IEEE_Float_64;
+<span class="kw">subtype</span> Bounded_Value <span class="kw">is</span> Value <span class="kw">range</span> -1.0e150 .. 1.0e150;
+
+Max_Stack_Size : <span class="kw">constant</span> := 1024;
+<span class="kw">type</span> Element_Count <span class="kw">is</span> <span class="kw">new</span> Integer <span class="kw">range</span> 0 .. Max_Stack_Size;
+<span class="kw">subtype</span> Stack_Index <span class="kw">is</span> Element_Count <span class="kw">range</span> 1 .. Max_Stack_Size;
+<span class="kw">type</span> Machine_Stack <span class="kw">is</span> <span class="kw">array</span> (Stack_Index) <span class="kw">of</span> Bounded_Value;
+
+<span class="kw">type</span> Machine <span class="kw">is</span> <span class="kw">record</span>
+   Status : Machine_Status := Ok;
+   Stack  : Machine_Stack;
+   Top    : Element_Count := 0;
+<span class="kw">end</span> <span class="kw">record</span>;</div>
+<h2 id="floating-point-simplifications">Floating point simplifications</h2>
+<p><code>Value</code> is separated from <code>Bounded_Value</code> for later checking to ensure that calculations don&apos;t exceed bounds.  <code>Value</code> here ensures the full range of <code>Bounded_Value</code> multiplication can be captured, without truly exceeding the bounds of the underlying 64-bit floating point type. This was a simplification for the floating point calculations since I could only prove the upper bound of <code>A + B</code> within bounds using the conditions <code>A &lt;= Max - B</code> and <code>B &lt;= Max - A</code>.  I would think the other side would be <code>A + B &gt;= Min</code>, which would be checkable as <code>A &gt;= Min - B</code> and <code>B &gt;= Min - A</code> but I wasn&apos;t able to get the provers to agree.</p>
+<p>There are also issues with how operation results are verified since those don&apos;t take into account relative differences between the two values.  Cases are missed, such as when a smaller floating point value is added to a much larger one and the mantissa range of the larger value doesn&apos;t cover the smaller value so no change is observed.</p>
+<p>The checks as implemented in this calculator ensure stack values stay within the <code>Bounded_Value</code> range and prevents infinities and NaNs.</p>
+<h2 id="using-enough-provers-and-iterating-faster">Using enough provers, and iterating faster</h2>
+<p>A human would look at this code and probably immediately say that the assert should pass:</p>
+<div class="code-block">Self.Stack (Self.Top) := Element;
+<span class="kw">pragma</span> Assert (Self.Stack (Self.Top) = Element);</div>
+<p>SPARK shields you from the provers, but the simple command line <code>alr gnatprove</code> doesn&apos;t bring all provers to bear.  While the prover will keep trying until the timeout, it fails since only one is run by default, with a very short timeout.</p>
+<div class="code-block">machines.adb:16:22: medium: assertion might fail
+   16 |      pragma Assert (Self.Stack (Self.Top) = Element);
+      |                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  possible fix: precondition of subprogram at machines.ads:54 should mention Element
+   54 |   procedure Push (Self : in out Machine; Element : Value)
+      |   ^ here
+</div>
+<p>There are <a href="https://docs.adacore.com/spark2014-docs/html/ug/en/source/how_to_run_gnatprove.html">different numerical &quot;levels&quot; you can run</a> which provide reasonable defaults and provide longer timeouts and use more provers.  With the right options the above code proves just fine.</p>
+<p>My default commandline eventually changed to provide more resources.</p>
+<div class="code-block">alr gnatprove --level=2 -j12
+</div>
+<p><code>--level=2</code> to run multiple provers, <code>-j12</code> to parallelize the proof across 12 threads.</p>
+</p>
+<p>If something cannot be proved, the provers will keep going until the timeout. While we can aspire to their level of dedication, it&apos;s often useful in iteration to reduce wait time if you know roughly what the expected number of steps you&apos;ve been using.</p>
+<p>For iteration speed, you should use <code>--steps</code> to timeout quicker.  The danger here is that on one occasion I was butting my head against the wall because I limited the step count too much and after removing <code>--steps</code> it showed the proof worked, it just needed more steps.</p>
+<div class="code-block">alr gnatprove -j12 --level=2 --steps=20000
+</div>
+<h1 id="my-process">My process</h1>
+<p>When writing the calculator &quot;Machine&quot; and the Scanner I didn&apos;t run the program often.</p>
+<p>Proving code seems a lot easier when dealing with one failure at a time. My approach was similar to test-driven design, except to only focus on adding failing conditions one at a time, and then iterating over them.</p>
+<p>I focused on proving smaller subprograms and on smaller subsets of the inputs and outputs first, and then broadening the proved inputs/outputs to cover all the cases I needed.</p>
+<p>I&apos;d specify a small set of preconditions that I&apos;d expect to pass. I use a lot of asserts in other code I write (usually C++), so writing preconditions flows naturally for me.  Preconditions get added with the <code>Pre</code> aspect.</p>
+<div class="code-block"><span class="kw">function</span> Peek (Self : Machine) <span class="kw">return</span> Value
+<span class="kw">with</span> Global => <span class="kw">null</span>, Pre => <span class="kw">not</span> Is_Stack_Empty (Self);</div>
+<p>With some preconditions in place, I&apos;d start adding postconditions. These  describe what must be true at the end of a subprogram, and are annotated with the <code>Post</code> aspect.</p>
+<div class="code-block"><span class="kw">function</span> Has_Next (Self : Scanner) <span class="kw">return</span> Boolean
+<span class="kw">with</span>
+  Post =>
+    ((Has_Next'Result <span class="kw">and</span> <span class="kw">then</span> Remaining_Characters (Self) > 0)
+     <span class="kw">or</span> <span class="kw">else</span> (<span class="kw">not</span> Has_Next'Result <span class="kw">and</span> <span class="kw">then</span> Remaining_Characters (Self) = 0)
+     <span class="kw">or</span> <span class="kw">else</span> (<span class="kw">not</span> Has_Next'Result <span class="kw">and</span> <span class="kw">then</span> <span class="kw">not</span> Has_Input (Self)));</div>
+<p>The weird <code>&apos;Name</code> things are attributes in Ada.  <code>Foo&apos;Result</code> is the Result of the function <code>Foo</code> in the postcondition, and <code>Bar&apos;Old</code> is the original value of the <code>Bar</code> variable on program entry.  You can even apply <code>&apos;Old</code> to records members, like <code>Bar.Baz&apos;Old</code>.</p>
+<h2 id="conditional-expressions">Conditional expressions</h2>
+<p>Ada allowing using <code>case-when</code> and <code>if</code> as expressions by encasing the condition within parentheses.  A special case is the simple syntax for &quot;A implies B&quot;:</p>
+<div class="code-block">(<span class="kw">if</span> A <span class="kw">then</span> B)</div>
+<p>This is logically equivalent to <code>not A or B</code> and fits extremely well into logic for postconditions.</p>
+<div class="code-block"><span class="cmt">--  All of these conditions in Pre and Post here are proved!
+</span><span class="kw">procedure</span> Skip_Whitespace
+  (Self : <span class="kw">in</span> <span class="kw">out</span> Scanner; Skipped_Whitespace : <span class="kw">out</span> Boolean)
+<span class="kw">with</span>
+  Pre  =>
+    Is_Valid (Self)
+    <span class="kw">and</span> <span class="kw">then</span> Has_Next (Self)
+    <span class="kw">and</span> <span class="kw">then</span> Has_More_Characters (Self),
+  Post =>
+    Is_Valid (Self)
+    <span class="kw">and</span> <span class="kw">then</span> (Self.State = (<span class="kw">if</span> Has_Next (Self) <span class="kw">then</span> Ready <span class="kw">else</span> Complete))
+    <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">if</span> Has_Next (Self) <span class="kw">then</span> <span class="kw">not</span> ACH.Is_Space (Peek (Self)))
+    <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">if</span> <span class="kw">not</span> Has_Next (Self)
+              <span class="kw">then</span>
+                Skipped_Whitespace <span class="kw">and</span> <span class="kw">then</span> <span class="kw">not</span> ACH.Is_Space (Peek (Self)))
+    <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">if</span> Skipped_Whitespace
+              <span class="kw">then</span>
+                Remaining_Characters (Self)
+                < Remaining_Characters (Self'Old))
+    <span class="kw">and</span> <span class="kw">then</span> ((Skipped_Whitespace
+               <span class="kw">and</span> <span class="kw">then</span> Remaining_Characters (Self)
+                        < Remaining_Characters (Self'Old))
+              <span class="kw">or</span> <span class="kw">else</span> (<span class="kw">not</span> Skipped_Whitespace))
+    <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">if</span> <span class="kw">not</span> Skipped_Whitespace
+              <span class="kw">then</span>
+                Remaining_Characters (Self)
+                = Remaining_Characters (Self'Old))
+    <span class="kw">and</span> <span class="kw">then</span> (Lexeme_Size (Self) = 0);</div>
+<h1 id="expression-functions">Expression functions</h1>
+<p>When dealing with internal state, often internal information was needed.  SPARK seems to treat &quot;expression functions&quot; different from regular functions with regards to how it feeds information to the provers.</p>
+<p>Normally you&apos;d write an Ada function as a spec in one file,</p>
+<div class="code-block"><span class="cmt">-- machines.ads, the spec file
+</span><span class="kw">function</span> Stack_Size (Self : Machine) <span class="kw">return</span> Element_Count
+<span class="kw">with</span> Global => <span class="kw">null</span>;</div>
+<p>and then a body in an implementation file</p>
+<div class="code-block"><span class="cmt">-- machines.adb, the implementation file
+</span><span class="kw">function</span> Stack_Size (Self : Machine) <span class="kw">return</span> Element_Count <span class="kw">is</span>
+<span class="kw">begin</span>
+   <span class="kw">return</span> Self.Top;
+<span class="kw">end</span> Stack_Size;</div>
+<p>An expression function lets you specify the body as an expression inside parentheses, which is often more succinct.</p>
+<p>When splitting some functions across spec and body files I ran into a lot of issues, so I originally wrote <code>Machine</code> using a public exposed struct. Eventually I realized I could preserve encapsulation by forward declaring the function and then putting the expression body in the private section of the spec file, which cleared up quite a few issues.</p>
+<div class="code-block"><span class="kw">package</span> Machines
+  <span class="kw">with</span> SPARK_Mode => On, Always_Terminates
+<span class="kw">is</span>
+   <span class="cmt">--  An opaque type with hidden internals.
+</span>   <span class="kw">type</span> Machine <span class="kw">is</span> <span class="kw">private</span>;
+
+   <span class="kw">function</span> Stack_Size (Self : Machine) <span class="kw">return</span> Element_Count
+   <span class="kw">with</span> Global => <span class="kw">null</span>;
+
+   <span class="cmt">--  ... a lot of other code ...
+</span>
+<span class="kw">private</span>
+
+   <span class="cmt">--  .. a lot of other code ...
+</span>
+   <span class="kw">function</span> Stack_Size (Self : Machine) <span class="kw">return</span> Element_Count
+   <span class="kw">is</span> (Self.Top);
+
+<span class="kw">end</span> Machines;</div>
+<h1 id="debugging-proofs">Debugging proofs</h1>
+<p>Sometimes I&apos;d run into cases where I&apos;d struggle with a proof.  These mechanisms are what I used to get things working.</p>
+<h2 id="assume">Assume</h2>
+<p>You can force the prover to accept a fact with <code>Assume</code>.</p>
+<div class="code-block"><span class="kw">pragma</span> Assume (X < 10);</div>
+<p>While my final program doesn&apos;t use <code>Assume</code> at all, it was very helpful to verify a proof would work if I was struggling with an intermediate step I needed.  This lead to a few cases where I changed my approach since the intermediate step I was trying to achieve was not useful to the goal.</p>
+<h2 id="additional-asserts">Additional Asserts</h2>
+<p>Asserting provides extra checks to verify conditions. This was useful to check broader or specific subsets of inputs to help diagnose broad postconditions.</p>
+<p>Sometimes I&apos;d add an assert which would fail, which would indicate I was missing a precondition or a postcondition check.</p>
+<div class="code-block"><span class="kw">pragma</span> Assert (Self.Top <span class="kw">in</span> Stack_Index);</div>
+<h2 id="assert-a-lot-more-than-you-need">Assert A LOT more than you need</h2>
+<p>When I&apos;d get stuck on a particular proof, I&apos;d do a pass over the program and add any additional preconditions and postconditions I could think of to better limit the expected inputs and outputs.  Improving postconditions especially seemed to help with reasoning about the program and also with more proofs down the line.  Conditions which appeared multiple times also made prime candidates to get refactored into expression functions.</p>
+<h2 id="contract_cases"><code>Contract_Cases</code></h2>
+<p>Instead of <code>Post</code> for conditions you can also use <code>Contract_Cases</code> to subdivide known input sets of a subprogram into separate postconditions.  When the left-hand side is true on subprogram entry the right-hand side must be true on exit.</p>
+<p>This segmentation is shown well in how <code>Push</code> guarantees an overflow if the stack is full, or otherwise adds to the stack, with all other elements below the top being preserved:</p>
+<div class="code-block"><span class="kw">procedure</span> Push (Self : <span class="kw">in</span> <span class="kw">out</span> Machine; Element : Bounded_Value)
+<span class="kw">with</span>
+  Global         => <span class="kw">null</span>,
+  Depends        => (Self => +Element),
+  Contract_Cases =>
+    (Is_Stack_Full (Self) => Status (Self) = Stack_Overflow,
+     <span class="kw">others</span>               =>
+       <span class="kw">not</span> Is_Stack_Empty (Self)
+       <span class="kw">and</span> <span class="kw">then</span> Stack_Size (Self) = Stack_Size (Self'Old) + 1
+       <span class="kw">and</span> <span class="kw">then</span> Peek (Self) = Element
+       <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">for</span> <span class="kw">all</span> X <span class="kw">in</span> 0 .. Stack_Size (Self'Old) - 1
+                 => Peek (Self, X + 1) = Peek (Self'Old, X)));</div>
+<h1 id="sharp-edges">Sharp edges</h1>
+<h2 id="private-subprograms-and-invariants">Private subprograms and invariants</h2>
+<p>Normally a value of a type is expected to abide by given invariants given on that type. The caveat is that private subprograms can violate these requirements, which can lead to the obscure message &quot;invariant check failed.&quot;</p>
+<p>Note that it might not be that the invariant check are violated, it could be that the invariant might not be guaranteed in the input to that subprogram or guaranteed after that subprogram.</p>
+<p>A possible resolution to this issue is providing an appropriate precondition on the value which guarantees the invariant, or an appropriate postcondition on the result or <code>out</code> parameter that guarantees the invariant. Making the invariant a function simplifies this and provides a common way to enforce these checks.</p>
+<div class="code-block"><span class="kw">type</span> Scanner <span class="kw">is</span> <span class="kw">record</span>
+   Input  : String (1 .. Max_Input_Length);
+   Start  : Range_Lower := 1;
+   Cursor : Range_Upper := 1;
+   Length : Range_Size := 0;
+   State  : Scanner_State := Empty;
+<span class="kw">end</span> <span class="kw">record</span>
+<span class="kw">with</span> Invariant => Is_Valid (Scanner);
+
+<span class="kw">function</span> Has_Valid_Cursor (Self : Scanner) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (Self.Start <= Self.Cursor <span class="kw">and</span> <span class="kw">then</span> Self.Cursor <= Self.Length + 1);
+
+<span class="kw">function</span> Has_Valid_State (Self : Scanner) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (<span class="kw">case</span> Self.State <span class="kw">is</span>
+      <span class="kw">when</span> Empty =>
+        Self.Length = 0 <span class="kw">and</span> <span class="kw">then</span> Self.Start = 1 <span class="kw">and</span> <span class="kw">then</span> Self.Cursor = 1,
+      <span class="kw">when</span> Complete => Self.Cursor = Self.Length + 1,
+      <span class="kw">when</span> <span class="kw">others</span> =>
+        Self.Start <= Self.Cursor <span class="kw">and</span> <span class="kw">then</span> Self.Cursor <= Self.Length + 1);
+
+<span class="kw">function</span> Is_Valid (Self : Scanner) <span class="kw">return</span> Boolean
+<span class="kw">is</span> (Has_Valid_Cursor (Self) <span class="kw">and</span> <span class="kw">then</span> Has_Valid_State (Self));</div>
+<h2 id="loop-invariants">Loop invariants</h2>
+<p>Loop invariants ensure conditions are met the entry, exit and every iteration of a loop.  An issue I ran across is needing to add every condition checked by something used by the loop.  This makes sense, but tended to be a lot more information than I expected.</p>
+<p>This tends to be more of an issue when mixing public and private subprograms in loops, since the private subprograms don&apos;t guarantee invariants of private types on exit and the public subprograms will expect these invariants to be true.</p>
+<p>Consistency isn&apos;t guaranteed when accessing only a single element in an array or record, so I struggled with the <code>Lexeme_Range</code> invariant in <code>Tokenize</code>.</p>
+<div class="code-block"><span class="kw">type</span> Lexeme_Range <span class="kw">is</span> <span class="kw">record</span>
+   Lower : Range_Index := 1;
+   Upper : Range_Upper := 1;
+<span class="kw">end</span> <span class="kw">record</span>
+<span class="kw">with</span> Invariant => Lower <= Upper <span class="kw">and</span> <span class="kw">then</span> Upper - Lower <= Range_Size'Last;</div>
+<p><code>Tokenize</code> chops up a string and returns tokens.  It only processes a single token every loop, but this quantified expression was necessary to guarantee the type invariant for all the other token lexeme ranges during the loop:</p>
+<div class="code-block">(<span class="kw">for</span> <span class="kw">all</span> X <span class="kw">in</span> 1 .. Next_Index - 1 =>
+    Tokens (X).Lexeme.Lower <= Tokens (X).Lexeme.Upper
+    <span class="kw">and</span> <span class="kw">then</span> Tokens (X).Lexeme.Upper - Tokens (X).Lexeme.Lower <= Range_Size'Last)</div>
+<p>I also had to rewrite some loops to ensure that the loop invariants are expressable.  I struggled getting <code>Tokenize</code> to prove that it terminated and had to relax the bounds of the types I was using and use a side-effect producing function.</p>
+<p>Most of <code>Tokenize</code> is the loop invariant.</p>
+<div class="code-block"><span class="kw">function</span> Tokenize (Self : <span class="kw">in</span> <span class="kw">out</span> Scanner) <span class="kw">return</span> Token_Array <span class="kw">is</span>
+   Tokens     : Token_Array (1 .. 1024) := [<span class="kw">others</span> => <>];
+   Next_Index : Positive := Tokens'First;
+<span class="kw">begin</span>
+   <span class="kw">pragma</span> Assert (Tokens'Length <= Positive'Last - 1);
+   <span class="kw">while</span> Has_Next (Self) <span class="kw">and</span> <span class="kw">then</span> Next_Index <= Tokens'Last <span class="kw">loop</span>
+      <span class="kw">pragma</span>
+        Loop_Invariant
+          (Is_Valid (Self)
+             <span class="kw">and</span> <span class="kw">then</span> Remaining_Characters (Self)
+                      <= Remaining_Characters (Self'Loop_Entry)
+             <span class="kw">and</span> <span class="kw">then</span> (<span class="kw">for</span> <span class="kw">all</span> X <span class="kw">in</span> 1 .. Next_Index - 1
+                       => Tokens (X).Lexeme.Lower <= Tokens (X).Lexeme.Upper
+                          <span class="kw">and</span> <span class="kw">then</span> Tokens (X).Lexeme.Upper
+                                   - Tokens (X).Lexeme.Lower
+                                   <= Range_Size'Last));
+      <span class="kw">pragma</span> Loop_Variant (Decreases => Remaining_Characters (Self));
+      Next_Token (Self, Tokens (Next_Index));
+      Next_Index := Next_Index + 1;
+   <span class="kw">end</span> <span class="kw">loop</span>;
+   <span class="kw">return</span> Tokens (1 .. Next_Index - 1);
+<span class="kw">end</span> Tokenize;</div>
+<h1 id="effects-of-machine-arithmetic">Effects of Machine Arithmetic</h1>
+<p>The coolest part of this is that the results for the arithmetic operations of the calculator are checked!  This actually guarantees things like the order of operands pulled from the stack in subtraction, which I originally did incorrectly.</p>
+<div class="code-block"><span class="cmt">-- Subtract the top two elements.
+</span><span class="kw">procedure</span> Op_Subtract (Self : <span class="kw">in</span> <span class="kw">out</span> Machine)
+<span class="kw">with</span>
+  Global         => <span class="kw">null</span>,
+  Pre            => Is_Running (Self),
+  Contract_Cases =>
+    (Stack_Size (Self) < 2 =>
+       Status (Self) = Stack_Underflow
+       <span class="kw">and</span> <span class="kw">then</span> Stack_Size (Self) = Stack_Size (Self'Old),
+     <span class="kw">others</span>                =>
+       ((Stack_Size (Self) = Stack_Size (Self'Old) - 1
+         <span class="kw">and</span> <span class="kw">then</span> Peek (Self) = Peek (Self'Old, 1) - Peek (Self'Old, 0))
+        <span class="kw">or</span> <span class="kw">else</span> (Self.Status = Value_Out_Of_Bounds)));
+
+<span class="cmt">-- Duplicate the top stack element.
+</span><span class="kw">procedure</span> Op_Dupe (Self : <span class="kw">in</span> <span class="kw">out</span> Machine)
+<span class="kw">with</span>
+  Global         => <span class="kw">null</span>,
+  Pre            => Is_Running (Self),
+  Contract_Cases =>
+    (Is_Stack_Full (Self)  =>
+       Status (Self) = Stack_Overflow
+       <span class="kw">and</span> <span class="kw">then</span> Stack_Size (Self) = Stack_Size (Self'Old),
+     Is_Stack_Empty (Self) =>
+       Status (Self) = Stack_Underflow
+       <span class="kw">and</span> <span class="kw">then</span> Stack_Size (Self) = Stack_Size (Self'Old),
+     <span class="kw">others</span>                =>
+       (Stack_Size (Self) = Stack_Size (Self'Old) + 1
+        <span class="kw">and</span> <span class="kw">then</span> Peek (Self, 0) = Peek (Self'Old, 0)
+        <span class="kw">and</span> <span class="kw">then</span> Peek (Self, 1) = Peek (Self'Old, 0)));</div>
+<h1 id="how-was-writing-formally-verified-code">How was writing formally verified code?</h1>
+<p>Writing this project had huge hurdles before I started prefering expression functions and understood the interactions between loop invariants, type invariants and private subprograms.</p>
+<p>The feedback loop of this method of programming is incredible.  It felt very weird at first, but helped push me towards more conceptually consistent refactors which helped further checks.  I had to put some hard limits in place for input lengths and number of tokens returned which I&apos;d rather not.</p>
+<p>Overall, this was a very enjoyable project and I&apos;m seriously considering trying to fork and extend this into some small Forth interpreter.</p>
+<p><a href="https://github.com/pyjarrett/postfix_calc">You can find the project page here.</a></p>
+</p>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

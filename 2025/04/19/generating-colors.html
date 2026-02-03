@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A program to automatically create color palettes." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Generating Colors for Blog Syntax Highlighting</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#generating-colors-for-syntax-highlighting">Generating colors for syntax highlighting</a></li>
+<li><a href="#contrast">Contrast</a></li>
+<li><a href="#representing-colors">Representing Colors</a></li>
+<li><a href="#method">Method</a></li>
+<li><a href="#result">Result</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="generating-colors-for-syntax-highlighting">Generating colors for syntax highlighting</h1>
+<p>There are many color palette choices for syntax highlighting, and I didn&apos;t want to have to pick one for my blog for light and dark mode.  I suspect the formatting of this blog will change in the future, so I wanted a way to select a palette of colors with sufficient contrast automatically, in case I change the background colors for code blocks.</p>
+<p>It seems reasonable to determine a minimum difference in lightness between the text and the background, and then find a set of unique colors within that range.</p>
+<h1 id="contrast">Contrast</h1>
+<p>The Web Content Accessibility Guidelines provide a description of contrast under its guideline of <a href="https://www.w3.org/TR/WCAG/#distinguishable">&quot;Distinguishable.&quot;</a></p>
+<p>Calculating a <a href="https://www.w3.org/TR/WCAG/#dfn-contrast-ratio">WCAG contrast ratio</a> is easy:</p>
+<div class="code-block">(L1 + 0.05) / (L2 + 0.05), where
+L1 is the relative luminance of the lighter of the colors, and
+L2 is the relative luminance of the darker of the colors.
+</div>
+<p>To get the idea, there&apos;s an <a href="https://webaim.org/resources/contrastchecker/">online interactive tool</a> where you can try out colors to see how contrast ratios works.  Contrast (Enhanced) recommends 7:1 contrast, and as low as 4.5:1 for large text.</p>
+<p><i>Luminance</i> is a measure of brightness, and WCAG provides a <a href="https://www.w3.org/TR/WCAG/#dfn-relative-luminance">calculation of it from the sRGB colorspace.</a></p>
+<div class="code-block">For the sRGB colorspace, the relative luminance of a color is defined as L = 0.2126 * R + 0.7152 * G + 0.0722 * B where R, G and B are defined as:
+
+if RsRGB &lt;= 0.04045 then R = RsRGB/12.92 else R = ((RsRGB+0.055)/1.055) ^ 2.4
+if GsRGB &lt;= 0.04045 then G = GsRGB/12.92 else G = ((GsRGB+0.055)/1.055) ^ 2.4
+if BsRGB &lt;= 0.04045 then B = BsRGB/12.92 else B = ((BsRGB+0.055)/1.055) ^ 2.4
+and RsRGB, GsRGB, and BsRGB are defined as:
+
+RsRGB = R8bit/255
+GsRGB = G8bit/255
+BsRGB = B8bit/255
+The &quot;^&quot; character is the exponentiation operator.
+</div>
+<p>I want to generate a unique set of colors which abide by <a href="https://www.w3.org/TR/WCAG/#dfn-contrast-ratio">WCAG contrast guidelines</a> against a background for syntax highlighting.  The goal is to provide starting background and foreground colors, some options, and then to generate a palette of colors to use.</p>
+</p>
+<h1 id="representing-colors">Representing Colors</h1>
+<p>Selecting colors requires a slight detour into the field of <a href="https://en.wikipedia.org/wiki/Colorimetry">colorimetry.</a> Colors in computers normally get specified in RGB, in which colors are specified as a combination of Red, Green and Blue values.</p>
+<p>While this is great and easy for computers to represent, the same amount of change in RGB values doesn&apos;t necessarily represent a perceptively different change in color.  It&apos;s difficult to select a particular brightness or a particular hue.</p>
+<p><a href="https://en.wikipedia.org/wiki/HSL_and_HSV">HSL and HSV</a> provide different axes along which to think about colors.  These color spaces choose a color from the spectrum as a Hue, a tone of that color as Saturation, and then a lighter or darker shade based on Lightness (HSL) or Value (HSV).  This feels like a more natural way to specify colors to me.</p>
+<p>There are some fancier ways of describing colors, like <a href="https://en.wikipedia.org/wiki/CIELAB_color_space">CIELAB</a> and <a href="https://en.wikipedia.org/wiki/CIELUV">CIELUV</a>.  The goal of these is to to try to represent perceptible changes in color uniformly within their spaces, but can be hard to use.</p>
+<p><a href="https://www.hsluv.org/">HSLuv</a> provides a variation on CIELUV that aims to be like HSL in usability, but make saturation work as a percentage. This is great because it makes two distances of the same length in the color space closer to the same difference in how they&apos;re perceived.</p>
+<p>As an example with a fixed hue (red), saturation here goes up from 0 to 100% from left to right, and lightness goes from 0 at the bottom to 100 at the top. This makes the bottom left black, the top right white, and the middle left shades of gray.  The middle upper part is pink, and the mid lower right is dark red.</p>
+<p><figure><img src="/images/hsluv/saturationVersusLightness.png" alt="Saturation vs Lightness"/><figcaption>Saturation vs Lightness</figcaption></figure></p>
+<p>Increasing saturation makes colors more vivid, while lowering saturation causes them to look washed out.  Starting with 100% saturation, and drawing hues from left to right, and lightness from bottom to top as before, you can see the fullness of the spectrum.</p>
+<p><figure><img src="/images/hsluv/hueVersusLightnessSaturation100.png" alt="Hue vs lightness @ 100% saturation"/><figcaption>Hue vs lightness @ 100% saturation</figcaption></figure></p>
+<p>This looks more washed out as saturation decreases to 75%.</p>
+<p><figure><img src="/images/hsluv/hueVersusLightnessSaturation75.png" alt="Hue vs lightness @ 75% saturation"/><figcaption>Hue vs lightness @ 75% saturation</figcaption></figure></p>
+<p>Even moreso at 50% saturation.</p>
+<p><figure><img src="/images/hsluv/hueVersusLightnessSaturation50.png" alt="Hue vs lightness @ 50% saturation"/><figcaption>Hue vs lightness @ 50% saturation</figcaption></figure></p>
+<p>And very gray-like at 25%.</p>
+<p><figure><img src="/images/hsluv/hueVersusLightnessSaturation25.png" alt="Hue vs lightness @ 25% saturation"/><figcaption>Hue vs lightness @ 25% saturation</figcaption></figure></p>
+</p>
+<h1 id="method">Method</h1>
+<p>HSLuv defines brightness of colors with similar luminance values to look approximately the same brightness.  Using this property. the background color provides the starting ceiling or floor based on the desired minimum and maximum amount of contrast, and then color hues and saturation can be selected from that brightness level.</p>
+<p>However, while the L in HSLuv is a measure of lightness, it doesn&apos;t exactly map directly to <a href="https://en.wikipedia.org/wiki/Luminous_efficiency_function">human perception of brightness</a>. HSLuv can be mapped to <a href="https://en.wikipedia.org/wiki/CIE_1931_color_space#CIE_XYZ_color_space">CIE XYZ</a>, where the Y <i>does</i> map to perceived brightness.</p>
+<p>The math looks scary, but the implementation simply transforms the L of HSLuv to Y which maps to luminance in CIE XYZ, finds the desired contrast, and then transforms back.</p>
+<p><a href="https://github.com/hsluv/hsluv">I ported this from the hsluv repo.</a></p>
+<div class="code-block"><span class="kw">func</span> xyzFromxyY(x, y, Y <span class="ty">float64</span>) (<span class="ty">float64</span>, <span class="ty">float64</span>, <span class="ty">float64</span>) {
+    <span class="kw">return</span> x <span class="sym">*</span> Y <span class="sym">/</span> y, Y, (<span class="val">1</span> <span class="sym">-</span> x <span class="sym">-</span> y) <span class="sym">*</span> Y <span class="sym">/</span> y
+}
+
+<span class="cmt">// D65 illuminate coordinates in CIE xyY space.
+</span><span class="kw">const</span> xw <span class="sym">=</span> <span class="val">0.3127</span>
+<span class="kw">const</span> yw <span class="sym">=</span> <span class="val">0.3290</span>
+<span class="kw">var</span> _, bigYw, _ <span class="sym">=</span> xyzFromxyY(xw, yw, <span class="val">1.0</span>) <span class="cmt">// luminance of the standard D65 illuminant.
+</span>
+<span class="kw">var</span> kappa <span class="sym">=</span> math.Pow(<span class="val">29.0</span><span class="sym">/</span><span class="val">3.0</span>, <span class="val">3.0</span>)
+<span class="kw">var</span> epsilon <span class="sym">:</span><span class="sym">=</span> math.Pow(<span class="val">6.0</span><span class="sym">/</span><span class="val">29.0</span>, <span class="val">3.0</span>)
+
+<span class="cmt">// Convert Y from CIE XYZ to L in HSLuv
+</span><span class="kw">func</span> yToL(y <span class="ty">float64</span>) <span class="ty">float64</span> {
+    <span class="kw">if</span> y <span class="sym">&lt;</span><span class="sym">=</span> epsilon {
+        <span class="kw">return</span> (y <span class="sym">/</span> bigYw) <span class="sym">*</span> kappa
+    } <span class="kw">else</span> {
+        <span class="kw">return</span> <span class="val">116</span><span class="sym">*</span>math.Pow(y<span class="sym">/</span>bigYw, <span class="val">1.0</span><span class="sym">/</span><span class="val">3.0</span>) <span class="sym">-</span> <span class="val">16</span>
+    }
+}
+
+<span class="cmt">// Convert L from HSLuv to Y in CIE XYZ
+</span><span class="kw">func</span> lToY(l <span class="ty">float64</span>) <span class="ty">float64</span> {
+    <span class="kw">if</span> l <span class="sym">&gt;</span> <span class="val">8</span> {
+        <span class="kw">return</span> bigYw <span class="sym">*</span> math.Pow(((l<span class="sym">+</span><span class="val">16.0</span>)<span class="sym">/</span><span class="val">116.0</span>), <span class="val">3</span>)
+    } <span class="kw">else</span> {
+        <span class="kw">return</span> bigYw <span class="sym">*</span> l <span class="sym">/</span> kappa
+    }
+}
+
+<span class="cmt">// Find the minimum luminance to achieve a contrast ratio against a darker color.
+</span><span class="kw">func</span> MinL(contrastRatio <span class="ty">float64</span>, darkerL <span class="ty">float64</span>) <span class="ty">float64</span> {
+    y <span class="sym">:</span><span class="sym">=</span> lToY(darkerL)
+    minY <span class="sym">:</span><span class="sym">=</span> contrastRatio<span class="sym">*</span>y <span class="sym">+</span> contrastRatio<span class="sym">*</span><span class="val">0.05</span> <span class="sym">-</span> <span class="val">0.05</span>
+    <span class="kw">return</span> yToL(minY)
+}
+
+<span class="cmt">// Finds the darkest color to achieve a contrast ratio against a given light color.
+</span><span class="kw">func</span> MaxL(contrastRatio, lighterL <span class="ty">float64</span>) <span class="ty">float64</span> {
+    y <span class="sym">:</span><span class="sym">=</span> lToY(lighterL)
+    maxY <span class="sym">:</span><span class="sym">=</span> (<span class="val">20</span><span class="sym">*</span>y <span class="sym">-</span> contrastRatio <span class="sym">+</span> <span class="val">1</span>) <span class="sym">/</span> (<span class="val">20</span> <span class="sym">*</span> contrastRatio)
+    <span class="kw">return</span> yToL(maxY)
+}</div>
+<p>There&apos;s minor differences between WCAG relative luminance and HSLuv, <a href="https://github.com/hsluv/hsluv/blob/master/math/contrast.mac">but there are claims of it to be negligible.</a></p>
+<p>Once a palette with appropriate hues and saturation are selected, the lightness is filled it according to the appropriate contrast ratio I want. After selecting colors with various hue and saturation, the colors need to be converted back into RGB for use.</p>
+<p>Testing the converted RGB palette colors with WCAG&apos;s contrast ratio function shows the converted values to be close to desired contrast to within 1 decimal point.  This is good enough for my needs for now.</p>
+</p>
+<h1 id="result">Result</h1>
+<p>The above code used this scheme as well!</p>
+<div class="code-block"><span class="cmt">// Generates a luminance value for rgb values in [0,1].
+</span><span class="kw">func</span> luminanceRGBf(rgb [<span class="val">3</span>]<span class="ty">float64</span>) <span class="ty">float64</span> {
+    <span class="kw">var</span> r2 <span class="ty">float64</span>
+    <span class="kw">var</span> g2 <span class="ty">float64</span>
+    <span class="kw">var</span> b2 <span class="ty">float64</span>
+
+    <span class="kw">if</span> rgb[<span class="val">0</span>] <span class="sym">&lt;</span><span class="sym">=</span> <span class="val">0.04045</span> {
+        r2 <span class="sym">=</span> rgb[<span class="val">0</span>] <span class="sym">/</span> <span class="val">12.92</span>
+    } <span class="kw">else</span> {
+        r2 <span class="sym">=</span> math.Pow((rgb[<span class="val">0</span>]<span class="sym">+</span><span class="val">0.055</span>)<span class="sym">/</span><span class="val">1.055</span>, <span class="val">2.4</span>)
+    }
+    <span class="kw">if</span> rgb[<span class="val">1</span>] <span class="sym">&lt;</span><span class="sym">=</span> <span class="val">0.04045</span> {
+        g2 <span class="sym">=</span> rgb[<span class="val">1</span>] <span class="sym">/</span> <span class="val">12.92</span>
+    } <span class="kw">else</span> {
+        g2 <span class="sym">=</span> math.Pow((rgb[<span class="val">1</span>]<span class="sym">+</span><span class="val">0.055</span>)<span class="sym">/</span><span class="val">1.055</span>, <span class="val">2.4</span>)
+    }
+    <span class="kw">if</span> rgb[<span class="val">2</span>] <span class="sym">&lt;</span><span class="sym">=</span> <span class="val">0.04045</span> {
+        b2 <span class="sym">=</span> rgb[<span class="val">2</span>] <span class="sym">/</span> <span class="val">12.92</span>
+    } <span class="kw">else</span> {
+        b2 <span class="sym">=</span> math.Pow((rgb[<span class="val">2</span>]<span class="sym">+</span><span class="val">0.055</span>)<span class="sym">/</span><span class="val">1.055</span>, <span class="val">2.4</span>)
+    }
+    <span class="kw">return</span> <span class="val">0.2126</span><span class="sym">*</span>r2 <span class="sym">+</span> <span class="val">0.7152</span><span class="sym">*</span>g2 <span class="sym">+</span> <span class="val">0.0722</span><span class="sym">*</span>b2
+}</div>
+<p>The result works, but I&apos;m not completely happy with it.  The general approach of using HSLuv seems valid --- I&apos;ve tried making a few different algorithms for hue and saturation selection and they all generate easy to read color palettes. What I have works well enough for me to take a break and do something else before revisiting this.</p>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://en.wikipedia.org/wiki/CIE_1931_color_space#CIE_XYZ_color_space">Wikipedia: CIE XYZ Color Space</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/CIELAB_color_space">Wikipedia: CIELAB</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/CIELUV">Wikipedia: CIELUV</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/HSL_and_HSV">Wikipedia: HSL and HSV</a></li>
+<li>
+<a href="https://www.hsluv.org/">HSLuv</a></li>
+<li>
+<a href="https://github.com/hsluv/hsluv/blob/master/math/contrast.mac">HSLuv: Determining Contrast</a></li>
+<li>
+<a href="https://github.com/hsluv/hsluv">Github: hsluv/hsluv</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/Luminous_efficiency_function">Wikipedia: Luminous Efficiency Function</a></li>
+<li>
+<a href="https://www.w3.org/TR/WCAG/#contrast-minimum">WCAG: contrast minimum</a></li>
+<li>
+<a href="https://www.w3.org/TR/WCAG/#dfn-contrast-ratio">WCAG: contrast ratio</a></li>
+<li>
+<a href="https://www.w3.org/TR/WCAG/#distinguishable">WCAG: Distinguishable</a></li>
+<li>
+<a href="https://www.w3.org/TR/WCAG/#dfn-relative-luminance">WCAG: relative luminance</a></li>
+<li>
+<a href="https://webaim.org/resources/contrastchecker/">Web Aim Contrast Checker</a></li>
+<li>
+<a href="https://en.wikipedia.org/wiki/Colorimetry">Wikipedia: Colorimetry</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

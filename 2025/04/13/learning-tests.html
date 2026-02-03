@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Testing libraries when behavior is unclear" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Learning Tests</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="learning-tests">Learning Tests</h1>
+<p>Sometimes APIs aren&apos;t documented, or the results at corner cases of a function aren&apos;t clear.  This might be a built-in library, or a third-party one being pulled in as a dependency.</p>
+<p>I sometimes write a few tests of these libraries in my own projects to check and document behavior where the behavior is unclear.  It also provides a mechanism to check if these corner cases or undocumented assumptions in library code change.</p>
+<p>For example, I just started learning Go, and I&apos;ve been using <a href="https://github.com/hsluv/hsluv-go">hsluv-go</a> to do a project with color spaces.  It has been a great library. The readme describes RGB inputs as 0 -&gt; 1.0, but it doesn&apos;t describe what the reported hue colors will be when converting grayscale colors from RGB to HSLuv.</p>
+<p>This is easy to do by writing a simple test and observing the behavior.</p>
+<div class="code-block"><span class="kw">func</span> TestGrayscaleColors(t <span class="sym">*</span>testing.T) {
+    values <span class="sym">:</span><span class="sym">=</span> [][<span class="val">3</span>]<span class="ty">float64</span>{
+        {<span class="val">0</span>, <span class="val">0</span>, <span class="val">0</span>},
+        {<span class="val">0.25</span>, <span class="val">0.25</span>, <span class="val">0.25</span>},
+        {<span class="val">0.5</span>, <span class="val">0.5</span>, <span class="val">0.5</span>},
+        {<span class="val">1.0</span>, <span class="val">1.0</span>, <span class="val">1.0</span>},
+    }
+    <span class="kw">const</span> tolerance <span class="sym">=</span> <span class="val">1e-6</span>
+    <span class="kw">for</span> i <span class="sym">:</span><span class="sym">=</span> <span class="kw">range</span> values {
+        h, s, _ <span class="sym">:</span><span class="sym">=</span> hsluv.HsluvFromRGB(values[i][<span class="val">0</span>], values[i][<span class="val">1</span>], values[i][<span class="val">2</span>])
+        <span class="kw">if</span> math.Abs(h) <span class="sym">&gt;</span> tolerance {
+            t.Errorf(<span class="str">&quot;Hue from grayscale %v, calculated as %f and not 0&quot;</span>, values[i], h)
+        }
+        <span class="kw">if</span> math.Abs(s) <span class="sym">&gt;</span> tolerance {
+            t.Errorf(<span class="str">&quot;Saturation from grayscale %v, calculated as %f and not 0&quot;</span>, values[i], s)
+        }
+    }
+}</div>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://github.com/hsluv/hsluv-go">hsluv-go</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

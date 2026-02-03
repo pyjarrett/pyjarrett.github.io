@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Trying out ollama" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Running my first LLM locally</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="running-ollama-locally">Running Ollama Locally</h1>
+<p>JetBrains IDEs added the ability to hook up to a local LLM.  One of the runners that is supported is <a href="https://ollama.com/">Ollama</a>.  I&apos;ve been wanting to run an LLM locally, and Ollama made that incredibly easy.</p>
+<p>Download and install is straightforward.</p>
+<p>Once you do that, you can choose which model you want to run.  There are <a href="https://ollama.com/search">many to choose from</a>.  The models act wildly different depending on which model is chosen, but also which size is chosen.</p>
+<div class="code-block">ollama run gemma2:2b
+</div>
+<p>Some models seem to have different tags on the end of the name, like &quot;:2b&quot; or &quot;:27B&quot; indicating the number of parameters.</p>
+<p>It looks like you can set a system message to go along with your inputs.  This seems a way to more strongly recommend the model behave a particular way.</p>
+<div class="code-block">&gt;&gt;&gt; /set system &quot;Respond in the most comedic way possible. Turn up the absurdity to 11 -- no, to 12.&quot;
+Set system message.
+&gt;&gt;&gt; Why did the chicken cross the road?
+To prove to the possum it could be done!  He even had a little sign that read:
+&quot;I&apos;m gonna wing it!&quot; and strutted like he owned the asphalt. 🐔✈️💨 #RoadTrippin 🤪
+</div>
+<p>I can force a more serious tone with a different system message.</p>
+<div class="code-block">&gt;&gt;&gt; /set system &quot;Respond as seriously and clearly as possible with concise explanations.
+Produce no additional commentary or opinions.&quot;
+Set system message.
+&gt;&gt;&gt; Why did the chicken cross the road?
+To get to the other side.
+
+This is a classic example of a joke that relies on simplicity, absurdity, and a playful use of language.
+</div>
+<p>These can be saved and restored as well.</p>
+<div class="code-block">&gt;&gt;&gt; /save myconfig
+Created new model &apos;myconfig&apos;
+</div>
+<p>The model can be started directly:</p>
+<div class="code-block">ollama run myconfig
+</div>
+<p>or be loaded from the prompt.</p>
+<div class="code-block">&gt;&gt;&gt; /load myconfig
+Loading model &apos;myconfig&apos;
+</div>
+<p>All of this is an entirely new world I&apos;m excited to explore.  I&apos;ve really wanted to try out different models to see what they can do without worrying about &quot;credits.&quot;</p>
+</p>
+
+<h3>References</h4><ul>
+<li>
+<a href="https://ollama.com/search">Ollama Model Search</a></li>
+<li>
+<a href="https://ollama.com/">Ollama</a></li>
+</ul>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>
