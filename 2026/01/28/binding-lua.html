@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing compile-time bindings to Lua" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Binding Lua to C++</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#auto-binding-c-functions-for-lua">Auto-binding C++ functions for Lua</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#binding-with-macros">Binding with Macros</a></li>
+<li><a href="#macros-inside-of-macros">Macros inside of macros</a></li>
+<li><a href="#hold-onto-your-hats-we-re-about-to-go-metaprogramming">Hold onto your hats, we're about to go metaprogramming</a></li>
+<ul class="outline">
+<li><a href="#shoveling-data-across-the-boundary">Shoveling Data across the Boundary</a></li>
+<li><a href="#composibility-of-luatransfer">Composibility of LuaTransfer<></a></li>
+    </ul>
+</ul>
+</nav>
+<hr />
+<h1 id="auto-binding-c-functions-for-lua">Auto-binding C++ functions for Lua</h1>
+<p>One of my C++ side-projects uses <a href="https://www.lua.org/">Lua</a> for scripting.</p>
+<p>I wanted to integrate a scripting language into my project, and Lua has a strong reputation as a language for games and also for being easy to embed. I wanted to learn how Lua bindings work and then created a system to simplify using Lua in this project.</p>
+<p>With a bit of macros and template metaprogramming, exposing new functions to Lua can be done with minimal effort.  This approach also supports bridging complicated types across the boundary as well as custom smart pointer types.</p>
+</p>
+<h1 id="overview">Overview</h1>
+<p>Lua is super powerful as an embedded scripting language.  With not much effort you can hook up configuration for your program through or it, or with a little bit of management, you can create sandboxed VMs with only the necessary functions available, or create scripts which use Lua coroutines to allow scripts to pause and resume behavior.  Overall, my experience using Lua has been <i>overwhelmingly positive</i>.</p>
+<p><code>lua_State</code> represents an individual Lua VM in your program, and you can use multiple at the same time.  Each VM has its own state of execution and its own set of functions which are attached to it. The salient point is that the Lua C API lets you make C/C++ functions available for calling from Lua.  When doing this, you need to pass parameters and return values across the boundary between the Lua VM and the native side.  This data transfer happens via Lua&apos;s stack.</p>
+<p>When binding functions to Lua, you need to be careful to push and pop off the appropriate values from that stack as arguments for the C/C++ function being called.  This gets tedious and error-prone to use the correct functions to shovel data across and also keep track of the appropriate index of the associated data.</p>
+<h1 id="binding-with-macros">Binding with Macros</h1>
+<p>I wrote a little library for my project to bind a function to Lua which transfers the data across the Lua/C++ boundary in a type-safe and automatic way. It handles static functions, but also member functions and custom handle (non-pointer) types.</p>
+<p>There&apos;s a little bit of duplication, but it hides a lot of manual handling of parameters.</p>
+<p>A macro creates the appropriate wrapper function to call the desired function.</p>
+<div class="code-block">PS_LUA_BIND_MEMBER_FN(CollisionChannelMap, addChannel)
+PS_LUA_BIND_MEMBER_FN(CollisionChannelMap, lookupChannel)
+PS_LUA_BIND_MEMBER_FN(CollisionChannelMap, setSelfResponse)
+PS_LUA_BIND_MEMBER_FN(CollisionChannelMap, setMutualResponse)</div>
+<p>A little bit of glue code is needed to feed to Lua to describe the binding.</p>
+<div class="code-block">PS_LUA_DEFINE_LIBOPEN(Collision)
+{
+    PS_LUA_NEW_LIB(Collision)
+        PS_LUA_MAP_LIB_FN(CollisionChannelMap, addChannel)
+        PS_LUA_MAP_LIB_FN(CollisionChannelMap, lookupChannel)
+        PS_LUA_MAP_LIB_FN(CollisionChannelMap, setSelfResponse)
+        PS_LUA_MAP_LIB_FN(CollisionChannelMap, setMutualResponse)
+    PS_LUA_END_LIB(Collision)
+
+    <span class="cmt">//  Add some constants to the map.
+</span>    LuaPushTable constants(L, <span class="val">false</span>, <span class="val">2</span>);
+    constants.push(<span class="str">&quot;CollisionResponseIgnore&quot;</span>, CollisionResponseIgnore);
+    constants.push(<span class="str">&quot;CollisionResponseCollide&quot;</span>, CollisionResponseCollide);
+    <span class="kw">return</span> <span class="val">1</span>;
+}</div>
+<p>This gets associated with the appropriate <code>lua_State</code> using <code>luaL_requiref</code> to make it available for use within Lua.</p>
+<p>And that&apos;s it.</p>
+<p>This provides dot notation <code>Type.function</code> calls from Lua.</p>
+<div class="code-block">collisionChannelPlayer = Collision.addChannel(collisionChannelMap, &quot;player&quot;)
+</div>
+<p>There&apos;s other flavors to allow <code>Object:function</code> to automatically pass the original object type, but both of these things work roughly the same way under the hood.</p>
+<div class="code-block">PS_LUA_BIND_HANDLE(Actor)
+PS_LUA_BIND_HANDLE_MEMBER_FN(Actor, getPosition)
+PS_LUA_BIND_HANDLE_MEMBER_FN(Actor, setPosition)
+PS_LUA_BIND_HANDLE_MEMBER_FN(Actor, getComponentByName)
+
+PS_LUA_DEFINE_LIBOPEN(Actor)
+{
+    PS_LUA_NEW_METATABLE(Actor)
+        PS_LUA_MAP_LIB_FN(Actor, getPositionXY)
+        PS_LUA_MAP_LIB_FN(Actor, setPositionXY)
+        PS_LUA_MAP_LIB_FN(Actor, getComponentByName)
+        PS_LUA_MAP_LIB_FN(Actor, addComponentByName)
+        PS_LUA_MAP_LIB_FN(Actor, getPosition)
+        PS_LUA_MAP_LIB_FN(Actor, setPosition)
+    PS_LUA_END_METATABLE(Actor, kMetatableActor)
+
+    <span class="kw">return</span> <span class="val">1</span>;
+}</div>
+<h1 id="macros-inside-of-macros">Macros inside of macros</h1>
+<div class="code-block"><span class="cmt">/// Binds a member function of a class to Lua.
+</span>#define PS_LUA_BIND_MEMBER_FN(Class, MemberFn)          \
+    PS_LUA_DEFINE_LIB_STATIC_FN(Class, MemberFn)        \
+    {                                                   \
+        PROFILE_BINDING_CALL(Class<span class="sym">:</span><span class="sym">:</span>MemberFn);          \
+        ps<span class="sym">:</span><span class="sym">:</span>AutoBind aparams(L, #Class <span class="str">&quot;::&quot;</span> #MemberFn); \
+        aparams.pushTarget<span class="sym">&lt;</span>Class, Class<span class="sym">*</span><span class="sym">&gt;</span>();            \
+        <span class="kw">return</span> aparams.call(<span class="sym">&amp;</span>Class<span class="sym">:</span><span class="sym">:</span>MemberFn);          \
+    }</div>
+<p>CLion lets you expand macros inline.  So let&apos;s unwrap what actually gets generated from this line:</p>
+<div class="code-block">PS_LUA_BIND_MEMBER_FN(CollisionChannelMap, addChannel)</div>
+<p>After one substitution you see the internals.</p>
+<div class="code-block">PS_LUA_DEFINE_LIB_STATIC_FN(CollisionChannelMap, addChannel)
+{
+    PROFILE_BINDING_CALL(CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+    ps<span class="sym">:</span><span class="sym">:</span>AutoBind aparams(L,
+        <span class="str">&quot;CollisionChannelMap&quot;</span>
+        <span class="str">&quot;::&quot;</span>
+        <span class="str">&quot;addChannel&quot;</span>);
+    aparams.pushTarget<span class="sym">&lt;</span>CollisionChannelMap, CollisionChannelMap<span class="sym">*</span><span class="sym">&gt;</span>();
+    <span class="kw">return</span> aparams.call(<span class="sym">&amp;</span>CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+}</div>
+<p>The wrapping function name gets stitched together from <code>PS_LUA_DEFINE_LIB_STATIC_FN</code> after a couple expands. <code>PS_LUA_FN_IDENTIFIER</code> does some fancy stitching together a unique name for the call.</p>
+<div class="code-block"><span class="kw">static</span> Int PS_LUA_FN_IDENTIFIER(CollisionChannelMap, addChannel)(lua_State <span class="sym">*</span> L) <span class="kw">noexcept</span>
+{
+    PROFILE_BINDING_CALL(CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+    ps<span class="sym">:</span><span class="sym">:</span>AutoBind aparams(L,
+        <span class="str">&quot;CollisionChannelMap&quot;</span>
+        <span class="str">&quot;::&quot;</span>
+        <span class="str">&quot;addChannel&quot;</span>);
+    aparams.pushTarget<span class="sym">&lt;</span>CollisionChannelMap, CollisionChannelMap<span class="sym">*</span><span class="sym">&gt;</span>();
+    <span class="kw">return</span> aparams.call(<span class="sym">&amp;</span>CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+}</div>
+<p>This is the final result.</p>
+<div class="code-block"><span class="kw">static</span> Int lua_CollisionChannelMap_addChannel(lua_State<span class="sym">*</span> L) <span class="kw">noexcept</span>
+{
+    PROFILE_BINDING_CALL(CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+    ps<span class="sym">:</span><span class="sym">:</span>AutoBind aparams(L,
+        <span class="str">&quot;CollisionChannelMap&quot;</span>
+        <span class="str">&quot;::&quot;</span>
+        <span class="str">&quot;addChannel&quot;</span>);
+    aparams.pushTarget<span class="sym">&lt;</span>CollisionChannelMap, CollisionChannelMap<span class="sym">*</span><span class="sym">&gt;</span>();
+    <span class="kw">return</span> aparams.call(<span class="sym">&amp;</span>CollisionChannelMap<span class="sym">:</span><span class="sym">:</span>addChannel);
+}</div>
+<p>Other than the logic for profiling, there really isn&apos;t much here except some template magic from <code>aparams.call()</code>.</p>
+<h1 id="hold-onto-your-hats-we-re-about-to-go-metaprogramming">Hold onto your hats, we&apos;re about to go metaprogramming</h1>
+<p>Template metaprogramming is very powerful, but can be difficult to write and furthermore, to read.</p>
+<p><code>AutoBind</code> is a class to do the work of automatically passing and returning parameters to functions.</p>
+<p>This member function of <code>AutoBind</code> is the start of the fun:</p>
+<div class="code-block"><span class="cmt">// Constant member function call.
+</span><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> T, <span class="kw">typename</span> Result, <span class="kw">typename</span>... Args<span class="sym">&gt;</span>
+Int call(Result (T<span class="sym">:</span><span class="sym">:</span><span class="sym">*</span>fn)(Args...))
+{
+    <span class="cmt">// Counting the object as a parameter will confuse users.
+</span>    checkNumArguments(lua_gettop(state_) <span class="sym">-</span> <span class="val">1</span>, <span class="kw">sizeof</span>...(Args));
+    <span class="kw">return</span> callMemberFunction<span class="sym">&lt;</span>Result (T<span class="sym">:</span><span class="sym">:</span><span class="sym">*</span>)(Args...), Result, Args...<span class="sym">&gt;</span>(fn);
+}</div>
+<p>Let&apos;s walk through this.</p>
+<p>The template needs to match against the class <code>T</code> containing the function.  That function is going to have a return type (<code>Result</code>), which is potentially <code>void</code>. It could also have more than one argument (<code>typename... Args</code>).  We&apos;re passing not just a function pointer here, but a member function pointer, which is associated with a class (<code>T::*fn</code>). Put together that gives us the parameter received by the call: <code>Result (T::*fn)(Args...)</code>.</p>
+<blockquote>
+    <p>There&apos;s also a version used for <code>const</code> member functions.  It has the same internals but needed a separate definition since <code>const</code> and non-<code>const</code> member function pointers are treated differently by the typechecker.  That version adds <code>const</code> to the end of the type here, so the parameter type would be <code>Result (T::*fn)(Args...) const</code>.</p>
+</blockquote>
+<p><code>checkNumArguments</code> here is debug code that ignores the top argument which is the object that this function is being called upon.</p>
+<p><code>call</code> returns the result of another template function <code>callMemberFunction</code>, where the meat of how this works actually comes together.  We have to prime the function with appropriate types to get everything to resolve across all the platforms I build this on (MSVC on Windows, GCC on Linux, and Clang on Apple and Linux).  Let&apos;s look at a stripped down version of that function without any error handling to see the main flow.</p>
+<div class="code-block"><span class="cmt">/// Call a member function assuming the light user data is a pointer to
+</span><span class="cmt">/// an appropriate object type.
+</span><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> Fn, <span class="kw">typename</span> Result, <span class="kw">typename</span>... Args<span class="sym">&gt;</span>
+Int callMemberFunction(Fn fn)
+{
+    <span class="kw">using</span> ClassPointer <span class="sym">=</span> <span class="kw">typename</span> GetCallerType<span class="sym">&lt;</span>Fn<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>Pointer;
+    <span class="kw">using</span> Params <span class="sym">=</span> <span class="kw">typename</span> std<span class="sym">:</span><span class="sym">:</span>tuple<span class="sym">&lt;</span>ClassPointer, ParamStorage<span class="sym">&lt;</span>Args<span class="sym">&gt;</span>...<span class="sym">&gt;</span>;
+
+    Params params;
+    ClassPointer target <span class="sym">=</span> (ClassPointer)lua_touserdata(state_, param_);
+
+    std<span class="sym">:</span><span class="sym">:</span>get<span class="sym">&lt;</span><span class="val">0</span><span class="sym">&gt;</span>(params) <span class="sym">=</span> target;
+    <span class="sym">+</span><span class="sym">+</span>param_;
+
+    <span class="cmt">// Parse remaining parameters.
+</span>    <span class="kw">if</span> <span class="kw">constexpr</span> (<span class="kw">sizeof</span>...(Args) <span class="sym">&gt;</span><span class="sym">=</span> <span class="val">1</span>) {
+        <span class="cmt">// Member functions have 1 extra argument due to the &quot;this&quot; pointer.
+</span>        gatherParams<span class="sym">&lt;</span>Params, <span class="val">1</span><span class="sym">&gt;</span>(params, std<span class="sym">:</span><span class="sym">:</span>make_index_sequence<span class="sym">&lt;</span><span class="kw">sizeof</span>...(Args)<span class="sym">&gt;</span> {});
+    }
+
+    <span class="kw">if</span> <span class="kw">constexpr</span> (std<span class="sym">:</span><span class="sym">:</span>is_void_v<span class="sym">&lt;</span>Result<span class="sym">&gt;</span>) {
+        std<span class="sym">:</span><span class="sym">:</span>apply(fn, params);
+        <span class="kw">return</span> <span class="val">0</span>;
+    } <span class="kw">else</span> {
+        <span class="kw">return</span> LuaTransfer<span class="sym">&lt;</span>Result<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>push(state_, std<span class="sym">:</span><span class="sym">:</span>forward<span class="sym">&lt;</span>Result<span class="sym">&gt;</span>(std<span class="sym">:</span><span class="sym">:</span>apply(fn, std<span class="sym">:</span><span class="sym">:</span>move(params))));
+    }
+}</div>
+<p>There&apos;s a hidden parameter when calling member functions in C++, which is the target object.  That&apos;s the only required parameter.  I wrote some safety elements around this and parameters which I&apos;ll go into after we look at how parameters are automatically passed.</p>
+<p>The important part of the setup here is the funneling of parameters from the Lua data stack into a C++-side <code>std::tuple</code> used to call the function. Eventually, we end up calling <code>std::apply(fn, params)</code> which calls our bound member function <code>fn</code>, with our accumulated parameters (<code>params</code>) which have been marshalled across the Lua/C++ boundary.</p>
+<div class="code-block"><span class="kw">using</span> ClassPointer <span class="sym">=</span> <span class="kw">typename</span> GetCallerType<span class="sym">&lt;</span>Fn<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>Pointer;
+<span class="kw">using</span> Params <span class="sym">=</span> <span class="kw">typename</span> std<span class="sym">:</span><span class="sym">:</span>tuple<span class="sym">&lt;</span>ClassPointer, ParamStorage<span class="sym">&lt;</span>Args<span class="sym">&gt;</span>...<span class="sym">&gt;</span>;
+
+ClassPointer target <span class="sym">=</span> (ClassPointer)lua_touserdata(state_, param_);
+Params params;
+std<span class="sym">:</span><span class="sym">:</span>get<span class="sym">&lt;</span><span class="val">0</span><span class="sym">&gt;</span>(params) <span class="sym">=</span> target;</div>
+<p>We use a recursive template call to pull out all the parameters themselves, provided any additional parameters exist.</p>
+<div class="code-block">    <span class="cmt">// Parse remaining parameters.
+</span>    <span class="kw">if</span> <span class="kw">constexpr</span> (<span class="kw">sizeof</span>...(Args) <span class="sym">&gt;</span><span class="sym">=</span> <span class="val">1</span>) {
+        <span class="cmt">// Member functions have 1 extra argument due to the &quot;this&quot; pointer.
+</span>        gatherParams<span class="sym">&lt;</span>Params, <span class="val">1</span><span class="sym">&gt;</span>(params, std<span class="sym">:</span><span class="sym">:</span>make_index_sequence<span class="sym">&lt;</span><span class="kw">sizeof</span>...(Args)<span class="sym">&gt;</span> {});
+    }</div>
+<p><code>gatherParams</code> expands at compile-time to generate code to loop through all the indexes and pull each parameter off the Lua data stack.  Each iteration increases the index being assigned, and a constexpr unrolls another iteration until all parameters are handled.</p>
+<p>Since the fold uses the appropriate type as given in the function parameter tuple, the appropriate <code>LuaTransfer&lt;&gt;</code> specialization is used to transfer the data between Lua and C++.</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> Params, size_t Offset, size_t... I<span class="sym">&gt;</span>
+<span class="ty">void</span> gatherParams(Params<span class="sym">&amp;</span> params, std<span class="sym">:</span><span class="sym">:</span>index_sequence<span class="sym">&lt;</span>I...<span class="sym">&gt;</span>)
+{
+    ((std<span class="sym">:</span><span class="sym">:</span>get<span class="sym">&lt;</span>I <span class="sym">+</span> Offset<span class="sym">&gt;</span>(params) <span class="sym">=</span> <span class="cmt">//
+</span>            LuaTransfer<span class="sym">&lt;</span>std<span class="sym">:</span><span class="sym">:</span>tuple_element_t<span class="sym">&lt;</span>I <span class="sym">+</span> Offset, Params<span class="sym">&gt;</span><span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>pull(state_, param_<span class="sym">+</span><span class="sym">+</span>)),
+        ... <span class="cmt">// Fold expression to do this for all arguments.
+</span>    );
+}</div>
+<p>This is what gets the element from the Lua stack using an appropriate conversion function and then stuffs it into the parameter tuple for the call.  This critical element is the bridge between the data that Lua is providing for the call and the C++ code being executed.</p>
+<h2 id="shoveling-data-across-the-boundary">Shoveling Data across the Boundary</h2>
+<p><code>LuaTransfer</code> defines the transfer of data to Lua (&quot;push&quot;) and from Lua (&quot;pull&quot;). We want to avoid excessive copying when calling our functions to push values to Lua, so there&apos;s some compile-time logic to pass large values to the push function by const reference.  We might need to copy a large amount of data onto the stack, but that doesn&apos;t mean we need to copy even more when doing the call to push that data.</p>
+<div class="code-block"><span class="cmt">/// Some parameters are not suitable for storing locally as a parameter to pass
+</span><span class="cmt">/// eventually to Lua.  An example would be const&amp; and &amp; values, since they&apos;d
+</span><span class="cmt">/// need to be referenced at initial storage time and might not be supported by
+</span><span class="cmt">/// std::tuple for storage and update.
+</span><span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="kw">using</span> ParamStorage <span class="sym">=</span> std<span class="sym">:</span><span class="sym">:</span>remove_cvref_t<span class="sym">&lt;</span>T<span class="sym">&gt;</span>;
+
+<span class="kw">template</span> <span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
+<span class="kw">struct</span> LuaTransfer {
+    <span class="cmt">/// Structs smaller than or equal to a 64-bit register should be able to be
+</span>    <span class="cmt">/// passed as a register rather than on the stack.
+</span>    <span class="kw">inline</span> <span class="kw">static</span> <span class="kw">constexpr</span> Int kPassByValueThresholdSize <span class="sym">=</span> <span class="val">8</span>;
+
+    <span class="cmt">/// When pushing parameters to Lua, don&apos;t copy them if they are big.
+</span>    <span class="kw">using</span> BaseType <span class="sym">=</span> std<span class="sym">:</span><span class="sym">:</span>remove_cvref_t<span class="sym">&lt;</span>T<span class="sym">&gt;</span>;
+    <span class="kw">using</span> PushType <span class="sym">=</span> std<span class="sym">:</span><span class="sym">:</span>conditional_t<span class="sym">&lt;</span>std<span class="sym">:</span><span class="sym">:</span>is_arithmetic_v<span class="sym">&lt;</span>T<span class="sym">&gt;</span> <span class="sym">|</span><span class="sym">|</span> std<span class="sym">:</span><span class="sym">:</span>is_pointer_v<span class="sym">&lt;</span>T<span class="sym">&gt;</span> <span class="sym">|</span><span class="sym">|</span> std<span class="sym">:</span><span class="sym">:</span>is_enum_v<span class="sym">&lt;</span>T<span class="sym">&gt;</span> <span class="sym">|</span><span class="sym">|</span>
+                                            (std<span class="sym">:</span><span class="sym">:</span>is_trivially_copyable_v<span class="sym">&lt;</span>BaseType<span class="sym">&gt;</span> <span class="sym">&amp;</span><span class="sym">&amp;</span>
+                                                <span class="kw">sizeof</span>(BaseType) <span class="sym">&lt;</span><span class="sym">=</span> kPassByValueThresholdSize) <span class="sym">|</span><span class="sym">|</span>
+                                            (std<span class="sym">:</span><span class="sym">:</span>is_same_v<span class="sym">&lt;</span>jgp<span class="sym">:</span><span class="sym">:</span>Handle<span class="sym">&lt;</span><span class="kw">typename</span> InnerType<span class="sym">&lt;</span>BaseType<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>Type<span class="sym">&gt;</span>, BaseType<span class="sym">&gt;</span>),
+        ParamStorage<span class="sym">&lt;</span>T<span class="sym">&gt;</span>,
+        <span class="kw">const</span> T<span class="sym">&amp;</span><span class="sym">&gt;</span>;
+
+    <span class="cmt">/// Pulling a value out of Lua from an index on its stack.
+</span>    <span class="kw">static</span> T pull(lua_State<span class="sym">*</span> L, Int paramIdx);
+
+    <span class="cmt">/// Pushing a value onto the Lua stack.
+</span>    <span class="kw">static</span> Int push(lua_State<span class="sym">*</span> L, PushType t);
+};</div>
+<p>That template gets specialized for every type that needs to cross the boundary between Lua and C++.  This allows usage of those types as both parameter and return types.  This also permits efficient built-in Lua C functions for types if available, as well as allowing to change the semantics of how types work.  A 2D vector could allow passing as a table with named X and Y coordinates like <code>exampleFunction ({x = 10, y = 20})</code>.</p>
+<p>Here&apos;s an example for <code>bool</code>:</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="sym">&gt;</span>
+<span class="ty">bool</span> LuaTransfer<span class="sym">&lt;</span><span class="ty">bool</span><span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>pull(lua_State<span class="sym">*</span> state, Int paramIdx)
+{
+    <span class="kw">if</span> (<span class="sym">!</span>lua_isboolean(state, paramIdx)) {
+        LuaUtil<span class="sym">:</span><span class="sym">:</span>debugDump(state);
+        JGP_LOG_ERROR(jgp<span class="sym">:</span><span class="sym">:</span>LogSysMain, <span class="str">&quot;Expected boolean parameter in script.&quot;</span>);
+    }
+    <span class="kw">return</span> (lua_toboolean(state, paramIdx) <span class="sym">!</span><span class="sym">=</span> <span class="val">0</span>);
+}
+
+<span class="kw">template</span> <span class="sym">&lt;</span><span class="sym">&gt;</span>
+Int LuaTransfer<span class="sym">&lt;</span><span class="ty">bool</span><span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>push(lua_State<span class="sym">*</span> L, <span class="ty">bool</span> b)
+{
+    lua_pushboolean(L, b);
+    <span class="kw">return</span> <span class="val">1</span>;
+}</div>
+<h2 id="composibility-of-luatransfer">Composibility of <code>LuaTransfer&lt;&gt;</code></h2>
+<p>Some types are composed of other C++ types, like an axis-aligned box with a min and max point.  <code>LuaTransfer&lt;&gt;</code> implementations get reused by some helper types to pass these values within other types.</p>
+<div class="code-block"><span class="kw">template</span> <span class="sym">&lt;</span><span class="sym">&gt;</span>
+AABB2f LuaTransfer<span class="sym">&lt;</span>AABB2f<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>pull(lua_State<span class="sym">*</span> state, Int paramIdx)
+{
+    <span class="kw">if</span> (<span class="sym">!</span>lua_istable(state, paramIdx)) {
+        LuaUtil<span class="sym">:</span><span class="sym">:</span>debugDump(state);
+        JGP_LOG_ERROR(jgp<span class="sym">:</span><span class="sym">:</span>LogSysMain, <span class="str">&quot;Expected a table for an AABB2f.&quot;</span>);
+    }
+
+    LuaPullTable table(state, paramIdx);
+    AABB2f aabb;
+    table.pull(<span class="str">&quot;min&quot;</span>, aabb.min);
+    table.pull(<span class="str">&quot;max&quot;</span>, aabb.max);
+    <span class="kw">return</span> aabb;
+}
+
+<span class="kw">template</span> <span class="sym">&lt;</span><span class="sym">&gt;</span>
+Int LuaTransfer<span class="sym">&lt;</span>AABB2f<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>push(lua_State<span class="sym">*</span> L, <span class="kw">const</span> AABB2f<span class="sym">&amp;</span> aabb)
+{
+    LuaPushTable table(L, <span class="val">true</span>, <span class="val">2</span>);
+    table.push(<span class="str">&quot;min&quot;</span>, aabb.min);
+    table.push(<span class="str">&quot;max&quot;</span>, aabb.max);
+    <span class="kw">return</span> <span class="val">1</span>;
+}</div>
+<p>If there&apos;s a result from the function, we can return it using appropriate specialized <code>LuaTransfer::push</code> function.</p>
+<div class="code-block"><span class="kw">if</span> <span class="kw">constexpr</span> (std<span class="sym">:</span><span class="sym">:</span>is_void_v<span class="sym">&lt;</span>Result<span class="sym">&gt;</span>) {
+    std<span class="sym">:</span><span class="sym">:</span>apply(fn, params);
+    <span class="kw">return</span> <span class="val">0</span>;
+} <span class="kw">else</span> {
+    <span class="kw">return</span> LuaTransfer<span class="sym">&lt;</span>Result<span class="sym">&gt;</span><span class="sym">:</span><span class="sym">:</span>push(state_, std<span class="sym">:</span><span class="sym">:</span>forward<span class="sym">&lt;</span>Result<span class="sym">&gt;</span>(std<span class="sym">:</span><span class="sym">:</span>apply(fn, params)));
+}</div>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

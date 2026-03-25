@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A quick look at the power of Ada's enums." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ada's Super Powered Enums</title>
+</head>
+<body>
+<header>
+<nav>
+<p class="centered"><a href="/">[Home]</a></p>
+</nav>
+</header>
+<main>
+<article>
+<nav>
+<ul class="outline outline-start" id="outline">
+<li><a href="#ada-s-super-powered-enums">Ada's Super Powered Enums</a></li>
+<li><a href="#printing">Printing</a></li>
+<li><a href="#parsing">Parsing</a></li>
+<li><a href="#values">Values</a></li>
+<li><a href="#array-indexing">Array Indexing</a></li>
+<li><a href="#array-iteration">Array iteration</a></li>
+<li><a href="#membership">Membership</a></li>
+<li><a href="#switching">Switching</a></li>
+<li><a href="#caveats">Caveats</a></li>
+<li><a href="#where-it-gets-weird">Where it gets weird</a></li>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</nav>
+<hr />
+<h1 id="ada-s-super-powered-enums">Ada&apos;s Super Powered Enums</h1>
+<p>One of the problems of dabbling with the Ada programming language is that some features work so much better than in other languages.</p>
+<p>Ada enums are one of those features.</p>
+<blockquote>
+    <p> If you&apos;re looking for Rust style <code>enum</code>s (sum types), Ada uses variants which are a different concept than that shown here.  Ada enums often get used as the &quot;discriminant&quot; (tag) for variants so a lot of concepts get reused.</p>
+</blockquote>
+<p>There is no <code>enum</code> keyword; instead, an enum is a list of values associated with a type.</p>
+<div class="code-block"><span class="kw">type</span> Direction <span class="kw">is</span> (Up, Down, Left, Right);</div>
+<p>There are a few things Ada does by default here which are hidden.</p>
+<p>Specific &quot;attributes&quot; get provided on <code>Direction</code> values.  Ada attributes use tick <code>&apos;</code> syntax instead of the co-existing and normal <code>.</code> syntax to grab composite information and functions in other languages.  Just like <code>.</code> syntax, some attributes are values, others are callable functions.  This is where the fun begins.</p>
+<p>Let&apos;s assume a direction and then see what we can do with it:</p>
+<div class="code-block">A_Direction : Direction := Up;</div>
+<h1 id="printing">Printing</h1>
+<p>It&apos;s often useful to have printable names associated with enums.  This helps print something meaningful when debugging.  This gets provided by the <code>&apos;Image</code> attribute.</p>
+<div class="code-block"><span class="cmt">--  Prints &quot;UP&quot;
+</span>Ada.Text_IO.Put_Line (A_Direction'Image);</div>
+<blockquote>
+    <p>Ada follows the <a href="https://en.wikipedia.org/wiki/Uniform_access_principle">Uniform Access Principle</a> and parameter-less attributes and functions don&apos;t require parentheses, similar to Ruby or F#.</p>
+</blockquote>
+<h1 id="parsing">Parsing</h1>
+<p>Printable names are nice, but what about parsing a name into an enum?  For that you use the <code>&apos;Value</code> attribute.</p>
+<div class="code-block">Str : String := <span class="cmt">-- ... some string... from somewhere...
+</span>
+<span class="kw">begin</span>
+    <span class="cmt">--  &apos;Value is function-like, so we call it like one.
+</span>    A_Direction := Direction'Value (Str);
+<span class="kw">exception</span>
+    <span class="kw">when</span> CE : Constraint_Error =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Unable to parse as direction: &quot;</span> & Str);
+<span class="kw">end</span>;</div>
+<h1 id="values">Values</h1>
+<p>You can provide values for enums like in other languages.</p>
+<div class="code-block"><span class="kw">type</span> Direction <span class="kw">is</span> (Up, Down, Left, Right);
+
+<span class="kw">for</span> Direction <span class="kw">use</span> (
+    Up => 1,
+    Down => 2,
+    Left => 3,
+    Right => 4
+);</div>
+<p>You can also make the enum a specific bit size using the <code>Size</code> aspect.</p>
+<div class="code-block"><span class="kw">type</span> Direction <span class="kw">is</span> (Up, Down, Left, Right)
+<span class="kw">with</span> Size => 8; <span class="cmt">--  8 bit directions
+</span></div>
+<h1 id="array-indexing">Array Indexing</h1>
+<p>The enum values are fixed.  What about using them as array indexes, as if the array were a map with default values?</p>
+<div class="code-block"><span class="kw">type</span> Direction_Array <span class="kw">is</span> <span class="kw">array</span> (Direction) <span class="kw">of</span> Boolean;
+Empty_Locations : Direction_Array := [<span class="kw">others</span> => False];</div>
+<blockquote>
+    <p>Ada 2022 uses <code>[ ... ]</code> for array literals, but previous versions use <code>( ... )</code>. You can still use <code>( ... )</code> if you want though in Ada 2022.  In either case, you still use <code>( )</code> for indexing.</p>
+</blockquote>
+<p>We can now directly index, assign and get values from the array using our enum values.</p>
+<div class="code-block"><span class="kw">if</span> Empty_Locations (Up) <span class="kw">then</span>
+    Ada.Text_IO.Put_Line (<span class="str">&quot;Up is empty&quot;</span>);
+    Empty_Locations (Up) := False;
+<span class="kw">end</span> <span class="kw">if</span>;</div>
+<blockquote>
+    <p>Ada array indexing looks like a function call in other languages.</p>
+</blockquote>
+<p>You can also directly assign an array using the enum values:</p>
+<div class="code-block">Empty_Locations := [Up => True, Down => False, Left => True, Right => False];</div>
+<p>Or only assign the values you care about:</p>
+<div class="code-block">Empty_Locations := [Up => True, Left => True, <span class="kw">others</span> => False];</div>
+<h1 id="array-iteration">Array iteration</h1>
+<p>How would you iterate over the array?  With the enum&apos;s <code>&apos;Range</code>!</p>
+<div class="code-block"><span class="kw">for</span> X <span class="kw">in</span> Direction'<span class="kw">Range</span> <span class="kw">loop</span>
+    <span class="kw">if</span> Empty_Locations (X) <span class="kw">then</span>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Location &quot;</span> & X'Image & <span class="str">&quot; is empty&quot;</span>);
+    <span class="kw">end</span> <span class="kw">if</span>;
+<span class="kw">end</span> <span class="kw">loop</span>;</div>
+<p>Not only is there a range, but there&apos;s also the ability to directly move between enum values.</p>
+<div class="code-block">A_Direction := Direction'Pred (A_Direction);
+A_Direction := Direction'Succ (A_Direction);</div>
+<p>How do you know if you&apos;re not going to fall off the end of the enum list? Using <code>&apos;First</code> and <code>&apos;Last</code>!</p>
+<div class="code-block"><span class="kw">if</span> A_Direction = Direction'First <span class="kw">then</span>
+    Ada.Text_IO.Put_Line (<span class="str">&quot;This is the first direction.&quot;</span>);
+<span class="kw">else</span>
+    Ada.Text_IO.Put_Line (<span class="str">&quot;Predecessor is &quot;</span>
+        & Direction'Pred (A_Direction)'Image);
+<span class="kw">end</span> <span class="kw">if</span>;
+
+<span class="kw">if</span> A_Direction = Direction'Last <span class="kw">then</span>
+    Ada.Text_IO.Put_Line (<span class="str">&quot;This is the last direction.&quot;</span>);
+<span class="kw">else</span>
+    Ada.Text_IO.Put_Line (<span class="str">&quot;Successor is &quot;</span>
+        & Direction'Succ (A_Direction)'Image);
+<span class="kw">end</span> <span class="kw">if</span>;</div>
+<h1 id="membership">Membership</h1>
+<p>You can also associate a semantically compatible subtype with an enum. Using <code>Static_Predicate</code> ensures enum conditions at compile-time.</p>
+<div class="code-block"><span class="kw">subtype</span> Horizontal <span class="kw">is</span> Direction
+<span class="kw">with</span> Static_Predicate => Horizontal <span class="kw">in</span> Left | Right;</div>
+<p>Then you can use these to check for appropriate values at runtime.</p>
+<div class="code-block"><span class="kw">procedure</span> Only_Horizontals (H : Horizontal) <span class="kw">is</span>
+<span class="kw">begin</span>
+    Ada.Text_IO.Put_Line (H'Image & <span class="str">&quot; must be a horizontal&quot;</span>);
+<span class="kw">end</span> Only_Horizontals;</div>
+<p>You can also use this subtype as a membership test:</p>
+<div class="code-block"><span class="kw">if</span> A_Direction <span class="kw">in</span> Horizontal <span class="kw">then</span>
+    Only_Horizontals (A_Direction);
+<span class="kw">end</span> <span class="kw">if</span>;</div>
+<h1 id="switching">Switching</h1>
+<p>Similar to Rust, we can ensure exhaustive switching off of these values. This also includes testing multiple values at once in a branch.  There is no fallthrough between these branches.</p>
+<div class="code-block"><span class="kw">case</span> A_Direction <span class="kw">is</span>
+    <span class="kw">when</span> Up =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Going up&quot;</span>);
+    <span class="kw">when</span> Down =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Going down&quot;</span>);
+    <span class="kw">when</span> Left | Right =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Going sideways&quot;</span>);
+<span class="kw">end</span> <span class="kw">case</span>;</div>
+<p>You can also use subtypes instead in switches:</p>
+<div class="code-block"><span class="kw">case</span> A_Direction <span class="kw">is</span>
+    <span class="kw">when</span> Up =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Going up&quot;</span>);
+    <span class="kw">when</span> Down =>
+        Ada.Text_IO.Put_Line (<span class="str">&quot;Going down&quot;</span>);
+    <span class="kw">when</span> Horizontal => <span class="cmt">--  Use a subtype with a Static_Predicate here.
+</span>        Ada.Text_IO.Put_Line (<span class="str">&quot;Going sideways&quot;</span>);
+<span class="kw">end</span> <span class="kw">case</span>;</div>
+<p>If the cases aren&apos;t disjoint you&apos;ll get a compile error, even when using subtypes with <code>Static_Predicate</code>.</p>
+<h1 id="caveats">Caveats</h1>
+<p>Some of these tricks only work when enums have consecutive ranges.  Note that is <i>consecutive</i>, not necessarily starting at 0.  This is true in general of arrays in Ada... they can start at indices other than 0 or 1!</p>
+<h1 id="where-it-gets-weird">Where it gets weird</h1>
+<p>The enum &quot;Values&quot; are <i>technically</i> functions, and are namespaced to the package, not to the type.  This means if you have the same name visible multiple times, such as by <code>use</code> of another package, then function overloading actually ensures the correct version of the type gets picked.</p>
+<p>That means this is legal:</p>
+<div class="code-block"><span class="kw">type</span> Direction <span class="kw">is</span> (Up, Down, Left, Right);
+<span class="kw">type</span> Elevator_Button <span class="kw">is</span> (Up, Down);
+
+D : Direction := Up; <span class="cmt">--  Picks Direction version of Up.
+</span>E : Elevator_Button := Up; <span class="cmt">-- Picks Elevator_Button version of Up;
+</span></div>
+<h1 id="summary">Summary</h1>
+<p>Overall, Ada enums provide a powerful way to represent domain-specific values, but also to use them in interesting ways. Being built-in helps avoid a lot of boilerplate while also helping prevent issues like improper indexing and simplifying conditional tests.</p>
+</article></main>
+<footer>
+<p class="centered"><a href="#">[Top]</a></p>
+</footer>
+</body>
+</html>

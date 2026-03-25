@@ -172,7 +172,7 @@ c1 := p1;               <span class="cmt">-- Error can&apos;t assign a color to 
 <span class="kw">end</span> Make_Material;</div>
 <h1 id="one-line-30-of-runtime-cpu">One line, 30% of runtime CPU</h1>
 <p>The most innocuous and expensive line of code in the program was the <code>F32</code> definition of the common floating point type used by the raytracer.  The issue is the range check is defined to be the attribute range (read as &quot;tick range&quot;). This is really a little bit of error checking magic provided by Ada to find infinities and NaN&apos;s whenever a <code>F32</code> is assigned to or used as a parameter, which obviously happens a lot in a raytracer.  Disabling range checks or removing the range for production use eliminates this problem, but it demonstrates how much error checking is possible from a single line of code in Ada.</p>
-<div class="code-block"><span class="kw">type</span> F32 <span class="kw">is</span> <span class="kw">new</span> Interfaces.IEEE_Float_32 <span class="kw">range</span> Interfaces.IEEE_Float_32'Range;</div>
+<div class="code-block"><span class="kw">type</span> F32 <span class="kw">is</span> <span class="kw">new</span> Interfaces.IEEE_Float_32 <span class="kw">range</span> Interfaces.IEEE_Float_32'<span class="kw">Range</span>;</div>
 
 <h3>References</h4><ul>
 <li>

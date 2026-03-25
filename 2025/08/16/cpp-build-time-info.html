@@ -41,7 +41,8 @@
 <p>Here&apos;s a simple example:</p>
 <div class="code-block">InspectType<span class="sym">&lt;</span><span class="kw">decltype</span>(<span class="val">5</span> <span class="sym">*</span> <span class="val">100</span>ul)<span class="sym">&gt;</span> expr;</div>
 <p>This gives a reasonable message with the type at compile time.  Even if you&apos;re deep in a change which doesn&apos;t build yet, you can still get type information for <code>auto</code> variables, template types, and expressions.</p>
-<div class="code-block">D<span class="sym">:</span>\dev\cpp\inspector\main.cpp(<span class="val">49</span>)<span class="sym">:</span> error C2079<span class="sym">:</span> &apos;expr&apos; uses undefined <span class="kw">struct</span> &apos;InspectType<span class="sym">&lt;</span><span class="kw">unsigned</span> <span class="ty">long</span><span class="sym">&gt;</span>&apos;</div>
+<div class="code-block">D:\dev\cpp\inspector\main.cpp(49): error C2079: &apos;expr&apos; uses undefined struct &apos;InspectType&lt;unsigned long&gt;&apos;
+</div>
 <p>What you&apos;re looking for is that response nestled as the template parameter in <code>InspectType&lt;...&gt;</code>: <code>unsigned long</code>.</p>
 <h1 id="when-compiler-messages-are-too-helpful">When Compiler Messages are too Helpful</h1>
 <p>C++ compilers have been working on improving messages and sometimes the messages are a bit too helpful.  This is possible when dealing with templates hidden behind a type alias.</p>
@@ -115,9 +116,9 @@ main.cpp:67:50: error: aggregate ‘InspectValues&lt;16, 8&gt; ivi’ has incomp
 <div class="code-block"><span class="kw">template</span><span class="sym">&lt;</span><span class="kw">typename</span> T<span class="sym">&gt;</span>
 <span class="ty">void</span> runtimePrintType() {
 #<span class="kw">if</span> _MSC_VER
-    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __FUNCSIG__ <span class="sym">&lt;</span><span class="sym">&lt;</span> &apos;\n&apos;;
+    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __FUNCSIG__ <span class="sym">&lt;</span><span class="sym">&lt;</span> <span class="str">&apos;\n&apos;</span>;
 #<span class="kw">else</span>
-    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __PRETTY_FUNCTION__ <span class="sym">&lt;</span><span class="sym">&lt;</span> &apos;\n&apos;;
+    std<span class="sym">:</span><span class="sym">:</span>cout <span class="sym">&lt;</span><span class="sym">&lt;</span> __PRETTY_FUNCTION__ <span class="sym">&lt;</span><span class="sym">&lt;</span> <span class="str">&apos;\n&apos;</span>;
 #endif
 }</div>
 <p>MSVC:</p>
