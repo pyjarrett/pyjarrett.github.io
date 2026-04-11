@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing a static site generator and parsing Markdown!" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Me making a blog</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Me making a blog" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing a static site generator and parsing Markdown!</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="me-making-a-blog">Me making a blog</h1><p><i>23 March, 2025</i> - <span class="tag tag-5">#blog</span><span class="tag tag-1">#c++</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#me-making-a-blog">Me making a blog</a></li>
 <li><a href="#overview">Overview</a></li>
@@ -37,9 +45,10 @@
     </ul>
 <li><a href="#summary">Summary</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="me-making-a-blog">Me making a blog</h1>
+
 <p>Writing practices the ability to collect and present evidence, so I wanted to make a blog.  The timidity to post anything online drove me to make my own static site generator for the site, in hopes I&apos;d never get it done, and hence never have to write anything.</p>
 <p>I&apos;ve had difficulties keeping previous blogs maintained using <a href="https://jekyllrb.com/">Jekyll</a>, <a href="https://gohugo.io/">Hugo</a> and <a href="https://www.sphinx-doc.org">Sphinx</a>.  While these are great tools used by many blogs, they didn&apos;t seem to fit me, and provided much more configuration and power than I really needed. I also failed to make writing a routine at the time, so when I&apos;d come back months later, I&apos;d spend time and energy figuring out how to rebuild the blog.</p>
 </p>
@@ -239,7 +248,7 @@ main <span class="sym">:</span><span class="sym">:</span> <span class="kw">proc<
 </ul>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

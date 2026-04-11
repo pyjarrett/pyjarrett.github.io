@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Leveraging templates with the compiler and linker to see type and value info" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Inspecting Type and Value Info at C++ Build Time</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Inspecting Type and Value Info at C++ Build Time" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Leveraging templates with the compiler and linker to see type and value info</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="inspecting-type-and-value-info-at-c-compile-time">Inspecting Type and Value Info at C++ Compile Time</h1><p><i>16 August, 2025</i> - <span class="tag tag-1">#c++</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#inspecting-type-and-value-info-at-c-compile-time">Inspecting Type and Value Info at C++ Compile Time</a></li>
 <ul class="outline">
@@ -28,9 +36,10 @@
 <li><a href="#at-runtime-msvc-clang-or-g">At runtime, MSVC, Clang or G++</a></li>
     </ul>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="inspecting-type-and-value-info-at-c-compile-time">Inspecting Type and Value Info at C++ Compile Time</h1>
+
 <p>Templates can be used to smuggle out compile-time information via error messaging, and you can do this for type, size and alignment information regardless of your development environment.</p>
 <p>Since this leverages the build tooling, this works in a variety of development environments, from VIM on a remote Linux server, to Windows with Visual Studio. It also works with types in templates, wrapped in multiple <code>using</code>, stringified together with <code>##</code>, and with multiple macro layers like handle types, where IDEs can get confused.</p>
 <h2 id="inspecting-types">Inspecting Types</h2>
@@ -134,7 +143,7 @@ oid)
 </p>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

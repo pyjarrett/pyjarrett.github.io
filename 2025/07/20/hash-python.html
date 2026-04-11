@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="File Hashes from Python" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Python's standard library to the rescue</title>
+</head>
+<body>
+<header>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="file-hashes-from-python">File Hashes from Python</h1><p><i>20 July, 2025</i> - <span class="tag tag-3">#python</span></p>
+<p>I was looking at using SQLite for a side project, and wanted to verify the file hashes after downloading.</p>
+<p>This is on a Windows PC, so normally what I&apos;d do is something like this:</p>
+<div class="code-block">Get-FileHash -Algorithm SHA256 sqlite-dll-win-x64-3500300.zip
+</div>
+<p>However, <code>Get-FileHash</code> does not currently support SHA-3, and sqlite3 downloads are provided with SHA-3-256 hashes.</p>
+<p>Normally I also submit downloads to <a href="https://www.virustotal.com/">Virus Total</a> for malware scanning, but it also provides hashes as well.  Unfortunately, it also doesn&apos;t appear to use SHA-3.</p>
+<div class="code-block">MD5 ebc4bafbdd67acebe0658e8ab0ddbdec
+SHA-1 65473b0d1ccfb4490235b3e0fb8b276c49cee2c1
+SHA-256 46754a93c17a7dfbc8a6ca7b1c74494ec4abc459e28049b4530634d06f2257d1
+</div>
+<p>Python is my usual script and automation swiss-army knife, and its extensive standard library gets the job done. Python 3.11 adds the <code>file_digest</code> function to the <code>hashlib</code> module:</p>
+<div class="code-block"><span class="kw">import</span> hashlib
+
+path <span class="sym">=</span> <span class="str">&apos;sqlite-dll-win-x64-3500300.zip&apos;</span>
+
+<span class="kw">with</span> open(path, <span class="str">&apos;rb&apos;</span>) <span class="kw">as</span> file<span class="sym">:</span>
+    digest <span class="sym">=</span> hashlib.file_digest(file, <span class="str">&apos;sha3_256&apos;</span>)
+    print(digest.hexdigest())</div>
+</p>
+</article></main>
+<footer>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
+</footer>
+</body>
+</html>

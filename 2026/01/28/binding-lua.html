@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing compile-time bindings to Lua" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Binding Lua to C++</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Binding Lua to C++" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing compile-time bindings to Lua</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="auto-binding-c-functions-for-lua">Auto-binding C++ functions for Lua</h1><p><i>28 January, 2026</i> - <span class="tag tag-1">#c++</span><span class="tag tag-6">#lua</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#auto-binding-c-functions-for-lua">Auto-binding C++ functions for Lua</a></li>
 <li><a href="#overview">Overview</a></li>
@@ -23,9 +31,10 @@
 <li><a href="#composibility-of-luatransfer">Composibility of LuaTransfer<></a></li>
     </ul>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="auto-binding-c-functions-for-lua">Auto-binding C++ functions for Lua</h1>
+
 <p>One of my C++ side-projects uses <a href="https://www.lua.org/">Lua</a> for scripting.</p>
 <p>I wanted to integrate a scripting language into my project, and Lua has a strong reputation as a language for games and also for being easy to embed. I wanted to learn how Lua bindings work and then created a system to simplify using Lua in this project.</p>
 <p>With a bit of macros and template metaprogramming, exposing new functions to Lua can be done with minimal effort.  This approach also supports bridging complicated types across the boundary as well as custom smart pointer types.</p>
@@ -281,7 +290,7 @@ Int LuaTransfer<span class="sym">&lt;</span>AABB2f<span class="sym">&gt;</span><
 }</div>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

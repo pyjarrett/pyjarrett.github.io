@@ -94,12 +94,12 @@ p code, li code {
 }
 
 .tag {
-    padding: 3px;
+    padding: 5px;
     margin: 0.2em;
     border: solid 1px;
     color: rgb(68, 68, 238);
     border-color: rgb(69, 69, 139);
-    border-radius: 5px;
+    border-radius: 15px;
     background-color: rgb(238, 238, 255);
 }
 
@@ -126,50 +126,43 @@ p code, li code {
 .code-block .sym { color: rgb( 0 ,  133 ,  123 ); }
 .code-block .val { color: rgb( 0 ,  129 ,  160 ); }
 .code-block .str { color: rgb( 120 ,  88 ,  255 ); }
-.code-block .co  { color: rgb( 214 ,  0 ,  196 ); }
+.code-block .co  { color: rgb( 214 ,  0 ,  196 );}
 
-.tag-1  { color: rgb( 165 ,  105 ,  0 ); }
-.tag-2  { color: rgb( 118 ,  124 ,  0 ); }
-.tag-3  { color: rgb( 0 ,  137 ,  59 ); }
-.tag-4  { color: rgb( 0 ,  133 ,  123 ); }
-.tag-5  { color: rgb( 0 ,  129 ,  160 ); }
-.tag-6  { color: rgb( 120 ,  88 ,  255 ); }
-.tag-7  { color: rgb( 214 ,  0 ,  196 ); }
+.tag-1  { color: rgb( 165 ,  105 ,  0 ); border-color: rgb( 165 ,  105 ,  0 );}
+.tag-2  { color: rgb( 118 ,  124 ,  0 ); border-color: rgb( 118 ,  124 ,  0 );}
+.tag-3  { color: rgb( 0 ,  137 ,  59 ); border-color: rgb( 0 ,  137 ,  59 );}
+.tag-4  { color: rgb( 0 ,  133 ,  123 ); border-color: rgb( 0 ,  133 ,  123 );}
+.tag-5  { color: rgb( 0 ,  129 ,  160 ); border-color: rgb( 0 ,  129 ,  160 );}
+.tag-6  { color: rgb( 120 ,  88 ,  255 ); border-color: rgb( 120 ,  88 ,  255 );}
+.tag-7  { color: rgb( 214 ,  0 ,  196 ); border-color: rgb( 214 ,  0 ,  196 );}
+
+.a-no-decorate {
+    text-decoration: none;
+    color: inherit;
+}
 
 .centered {
     text-align: center
 }
 
+.top-bar { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; padding-bottom: 20px; font-size: 24px }
+.top-bar-logo { text-align: left; font-weight: bold }
+.top-bar-link { text-decoration: none; }
+.top-bar-link-group { display: flex; gap: 20px; }
+
+a.top-bar-link:visited { color: #444; }
+a.top-bar-link:hover { color: #444; }
+a.top-bar-link:active { color: #444; }
+
 blockquote {
     position: relative;
-    padding: 0.2em;
-    border: solid 1px;
-    border-color: #45458b;
+    padding: 0.4em;
     background-color: #eeeeff;
     display: grid;
 }
 
 blockquote p {
-    margin-top: 0.2em;
-    margin-bottom: 0.2em;
-}
-
-blockquote:before {
-  position: absolute;
-  content: open-quote;
-  font-size: 3em;
-  margin-left: -0.5em;
-  margin-top: -0.4em;
-}
-
-blockquote:after {
-  position: absolute;
-  content: close-quote;
-  font-size: 3em;
-  bottom: 0;
-  right: 0;
-  margin-right: -0.5em;
-  margin-bottom: -0.8em;
+	margin: 0.4em;
 }
 
 blockquote p {
@@ -181,6 +174,11 @@ blockquote p {
         color: rgb(222, 222, 222);
         background-color: rgb(1, 1, 28);
     }
+
+    a.top-bar-link:visited { color: rgb(222, 222, 222); }
+    a.top-bar-link:hover { color: rgb(222, 222, 222); }
+    a.top-bar-link:active { color: rgb(222, 222, 222); }
+
     a { color: #92bdde; }
     a:visited { color: #66cc66; }
     a:hover { color: #aec6cf; background-color: #222244; }
@@ -204,13 +202,13 @@ blockquote p {
         border-color: #45458b;
         color: #ee8888;
     }
-    .tag-1 { color: rgb( 234 ,  0 ,  228 ); }
-    .tag-2 { color: rgb( 254 ,  13 ,  129 ); }
-    .tag-3 { color: rgb( 191 ,  114 ,  0 ); }
-    .tag-4 { color: rgb( 137 ,  136 ,  0 ); }
-    .tag-5 { color: rgb( 0 ,  153 ,  38 ); }
-    .tag-6 { color: rgb( 0 ,  148 ,  133 ); }
-    .tag-7 { color: rgb( 0 ,  144 ,  172 ); }
+    .tag-1 { color: rgb( 234 ,  0 ,  228 ); border-color: rgb( 234 ,  0 ,  228 ); }
+    .tag-2 { color: rgb( 254 ,  13 ,  129 ); border-color: rgb( 254 ,  13 ,  129 ); }
+    .tag-3 { color: rgb( 191 ,  114 ,  0 ); border-color: rgb( 191 ,  114 ,  0 ); }
+    .tag-4 { color: rgb( 137 ,  136 ,  0 ); border-color: rgb( 137 ,  136 ,  0 ); }
+    .tag-5 { color: rgb( 0 ,  153 ,  38 ); border-color: rgb( 0 ,  153 ,  38 ); }
+    .tag-6 { color: rgb( 0 ,  148 ,  133 ); border-color: rgb( 0 ,  148 ,  133 ); }
+    .tag-7 { color: rgb( 0 ,  144 ,  172 ); border-color: rgb( 0 ,  144 ,  172 ); }
 
     blockquote {
         background-color: #224;

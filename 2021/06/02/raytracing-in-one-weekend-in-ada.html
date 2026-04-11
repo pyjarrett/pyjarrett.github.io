@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Ray Tracing in One Weekend in Ada" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ray Tracing in One Weekend... in Ada</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Ray Tracing in One Weekend... in Ada" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ray Tracing in One Weekend in Ada</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="ray-tracing-in-one-weekend-in-ada">Ray Tracing in One Weekend... in Ada</h1><p><i>2 June, 2021</i> - <span class="tag tag-2">#ada</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#ray-tracing-in-one-weekend-in-ada">Ray Tracing in One Weekend... in Ada</a></li>
 <li><a href="#project-layout">Project Layout</a></li>
@@ -21,9 +29,10 @@
 <li><a href="#ada-lacks-perfect-forwarding">Ada lacks perfect forwarding</a></li>
 <li><a href="#one-line-30-of-runtime-cpu">One line, 30% of runtime CPU</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="ray-tracing-in-one-weekend-in-ada">Ray Tracing in One Weekend... in Ada</h1>
+
 <p>I&apos;ve been learning Ada 2012, it started out as an intellectual curiosity some time in March, and then I bought <a href="https://www.amazon.com/Programming-Ada-2012-John-Barnes/dp/110742481X">John Barne&apos;s &quot;Programming in Ada 2012&quot; book</a> for a more in-depth look.  A lot people don&apos;t really know hardly anything about Ada, and I don&apos;t really blame them.  Until recently, resources were very scarce and there&apos;s not good comparison programs to see what Ada is like.</p>
 <p>I did a port of <a href="https://raytracing.github.io/">Ray Tracing in One Weekend</a> as <a href="https://github.com/pyjarrett/ada-ray-tracer">faithfully as possible from C++ into Ada</a>. This comparison should help people understand more of what Ada is about to satisfy their own curiosity.</p>
 <p>Overall, the port went very smoothly, due to the conceptual similarities between C++ and Ada.  There&apos;s a few things to point out, and a few rough spots with Ada which were frustrating.</p>
@@ -190,7 +199,7 @@ c1 := p1;               <span class="cmt">-- Error can&apos;t assign a color to 
 </ul>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

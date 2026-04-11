@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A venture in writing a larger SPARK project." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing a Verified Postfix Expression Calculator in Ada/SPARK</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing a Verified Postfix Expression Calculator in Ada/SPARK" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>A venture in writing a larger SPARK project.</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="writing-a-verified-postfix-expression-calculator">Writing a Verified Postfix Expression Calculator</h1><p><i>10 June, 2025</i> - <span class="tag tag-2">#ada</span><span class="tag tag-5">#forth</span><span class="tag tag-7">#spark</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#writing-a-verified-postfix-expression-calculator">Writing a Verified Postfix Expression Calculator</a></li>
 <ul class="outline">
@@ -52,9 +60,10 @@
 <li><a href="#effects-of-machine-arithmetic">Effects of Machine Arithmetic</a></li>
 <li><a href="#how-was-writing-formally-verified-code">How was writing formally verified code?</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="writing-a-verified-postfix-expression-calculator">Writing a Verified Postfix Expression Calculator</h1>
+
 <p><a href="https://learn.adacore.com/courses/intro-to-spark/index.html">SPARK</a> is an Ada subset which can be used for formal verification and someone pitched a SPARK verified <a href="https://archive.fosdem.org/2020/schedule/event/forth_new_synthesis/">seedForth</a> implementation <a href="https://forum.ada-lang.io/t/ada-bootstrap-compiler-funding-thanks-to-nlnet/2014/28">on the Ada forums</a> as a way of bootstrapping a new Ada compiler. I&apos;ve heard about Forth in passing for a while, but never looked into it much before, so this sent me down a fun rabbit hole reading the first third of <a href="https://www.forth.com/starting-forth/">Starting Forth</a> in a single night.</p>
 </p>
 </p>
@@ -441,7 +450,7 @@ Max_Stack_Size : <span class="kw">constant</span> := 1024;
 </p>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

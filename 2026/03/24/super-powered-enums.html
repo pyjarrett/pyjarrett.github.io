@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A quick look at the power of Ada's enums." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ada's Super Powered Enums</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Ada's Super Powered Enums" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>A quick look at the power of Ada's enums.</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="ada-s-super-powered-enums">Ada&apos;s Super Powered Enums</h1><p><i>24 March, 2026</i> - <span class="tag tag-2">#ada</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#ada-s-super-powered-enums">Ada's Super Powered Enums</a></li>
 <li><a href="#printing">Printing</a></li>
@@ -25,9 +33,10 @@
 <li><a href="#where-it-gets-weird">Where it gets weird</a></li>
 <li><a href="#summary">Summary</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="ada-s-super-powered-enums">Ada&apos;s Super Powered Enums</h1>
+
 <p>One of the problems of dabbling with the Ada programming language is that some features work so much better than in other languages.</p>
 <p>Ada enums are one of those features.</p>
 <blockquote>
@@ -162,7 +171,7 @@ D : Direction := Up; <span class="cmt">--  Picks Direction version of Up.
 <p>Overall, Ada enums provide a powerful way to represent domain-specific values, but also to use them in interesting ways. Being built-in helps avoid a lot of boilerplate while also helping prevent issues like improper indexing and simplifying conditional tests.</p>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

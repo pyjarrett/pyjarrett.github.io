@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A program to automatically create color palettes." /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Generating Colors for Blog Syntax Highlighting</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Generating Colors for Blog Syntax Highlighting" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>A program to automatically create color palettes.</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="generating-colors-for-syntax-highlighting">Generating colors for syntax highlighting</h1><p><i>19 April, 2025</i> - <span class="tag tag-5">#blog</span><span class="tag tag-4">#go</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#generating-colors-for-syntax-highlighting">Generating colors for syntax highlighting</a></li>
 <li><a href="#contrast">Contrast</a></li>
@@ -19,9 +27,10 @@
 <li><a href="#method">Method</a></li>
 <li><a href="#result">Result</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="generating-colors-for-syntax-highlighting">Generating colors for syntax highlighting</h1>
+
 <p>There are many color palette choices for syntax highlighting, and I didn&apos;t want to have to pick one for my blog for light and dark mode.  I suspect the formatting of this blog will change in the future, so I wanted a way to select a palette of colors with sufficient contrast automatically, in case I change the background colors for code blocks.</p>
 <p>It seems reasonable to determine a minimum difference in lightness between the text and the background, and then find a set of unique colors within that range.</p>
 <h1 id="contrast">Contrast</h1>
@@ -176,7 +185,7 @@ The &quot;^&quot; character is the exponentiation operator.
 </ul>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

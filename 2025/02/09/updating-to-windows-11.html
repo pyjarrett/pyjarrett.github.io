@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Learning about TPMs, MBR, CSM, and GPT to upgrade to Windows 11" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Updating to Windows 11</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Updating to Windows 11" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Learning about TPMs, MBR, CSM, and GPT to upgrade to Windows 11</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="my-journey-updating-to-windows-11">My journey updating to Windows 11</h1><p><i>9 February, 2025</i> - <span class="tag tag-5">#os</span><span class="tag tag-5">#windows</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#my-journey-updating-to-windows-11">My journey updating to Windows 11</a></li>
 <ul class="outline">
@@ -23,9 +31,10 @@
 <li><a href="#updating-the-updates">Updating the updates</a></li>
 <li><a href="#result">Result</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="my-journey-updating-to-windows-11">My journey updating to Windows 11</h1>
+
 <p>My primary desktop at home has run Windows 10 Pro since 2021, and I self-host some services locally at home on Linux. After doing a month-long test run of KDE Plasma from my Linux box, I&apos;d been considering swapping this PC to Linux as well.  However, I like to develop on Windows and Linux to learn about cross-platform compatibility issues, and I build my projects with MSVC, Clang and GCC.  I&apos;ve been watching the Windows 10 end-of-line date approach and decided to finally upgrade.</p>
 <p>The specs were good when it was built and I upgraded pieces over time - Ryzen 5950x, RX 6800 XT, 64 GB of RAM so upgrading to Windows 11 should be easy. Right?</p>
 <h2 id="tpm">TPM</h2>
@@ -116,7 +125,7 @@ mbr2gpt /convert /allowFullOS
 </ul>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

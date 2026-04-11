@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing a verified Forth VM in Ada/SPARK" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing Anteforth, a Forth-like in SPARK</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Writing Anteforth, a Forth-like in SPARK" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Writing a verified Forth VM in Ada/SPARK</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="writing-a-forth-like-in-spark">Writing a &quot;Forth-like&quot; in SPARK</h1><p><i>13 January, 2026</i> - <span class="tag tag-2">#ada</span><span class="tag tag-5">#forth</span><span class="tag tag-7">#spark</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#writing-a-forth-like-in-spark">Writing a "Forth-like" in SPARK</a></li>
 <li><a href="#forth-background">Forth Background</a></li>
@@ -23,9 +31,10 @@
 <li><a href="#next-steps">Next Steps</a></li>
 <li><a href="#summary">Summary</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="writing-a-forth-like-in-spark">Writing a &quot;Forth-like&quot; in SPARK</h1>
+
 <p>This is the second stop on my journey writing a verified Forth.  The final goal would be to make a verified Forth (like <a href="https://archive.fosdem.org/2020/schedule/event/forth_new_synthesis/">seedForth</a>) which could be used as a compiler backend as described on the <a href="https://forum.ada-lang.io/t/ada-bootstrap-compiler-funding-thanks-to-nlnet/2014/28">Ada forum</a>.</p>
 <p>Previously, I wrote a <a href="/2025/06/10/postfix-calculator.html">postfix calculator</a> to learn more about the SPARK subset of Ada, and to see if a small postfix calculator could have its operations verified.  I&apos;ve never worked with Forth before, so this step was to understand that language more and the implementation issues.</p>
 </p>
@@ -273,7 +282,7 @@ Post =>
 <p><a href="https://github.com/pyjarrett/anteforth">Anteforth&apos;s code is available here</a>.</p>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>

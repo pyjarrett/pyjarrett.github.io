@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Building Alire on Raspberry Pi 5" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Ada on the Raspberry Pi 5</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Ada on the Raspberry Pi 5" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Building Alire on Raspberry Pi 5</title>
 </head>
 <body>
 <header>
-<nav>
-<p class="centered"><a href="/">[Home]</a></p>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
 </nav>
 </header>
 <main>
 <article>
+<h1 id="ada-on-the-raspberry-pi-5">Ada on the Raspberry Pi 5</h1><p><i>27 April, 2025</i> - <span class="tag tag-2">#ada</span></p>
 <nav>
+<details open>
+<summary>Table of Contents</summary>
 <ul class="outline outline-start" id="outline">
 <li><a href="#ada-on-the-raspberry-pi-5">Ada on the Raspberry Pi 5</a></li>
 <li><a href="#alire-from-the-package-manager-apt">Alire from the Package Manager (apt)</a></li>
@@ -23,9 +31,10 @@
 <li><a href="#what-symbols-were-missing">What symbols were missing?</a></li>
 <li><a href="#remarks">Remarks</a></li>
 </ul>
+</details>
 </nav>
 <hr />
-<h1 id="ada-on-the-raspberry-pi-5">Ada on the Raspberry Pi 5</h1>
+
 <p>Someone gave me a <a href="https://www.raspberrypi.com/products/raspberry-pi-5/">Raspberry Pi 5</a> as a present.  I don&apos;t know much in detail about it other than it&apos;s a single board computer that is used for education and hobbyists to learn and build projects.  I&apos;m not sure what to do with it, but my job is writing low level code and I could benefit from learning some ARM assembly (as well as RISC-V and WASM, but there&apos;s only so many hours in the day).  From time to time I write my hobby native code in Ada, so does that work on Raspberry Pi 5?</p>
 </p>
 <p>When I write Ada recently, I use a tool called <a href="https://alire.ada.dev/">Alire</a>. It operates like a mashup of <a href="https://rustup.rs/">Rustup</a> and <a href="https://doc.rust-lang.org/cargo/">cargo</a> for Ada, handling package dependencies and installing what you need to build programs.</p>
@@ -484,7 +493,7 @@ Hello, Raspberry!
 </ul>
 </article></main>
 <footer>
-<p class="centered"><a href="#">[Top]</a></p>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
 </footer>
 </body>
 </html>
