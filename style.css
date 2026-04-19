@@ -8,18 +8,13 @@ body {
     padding: 0 1em;
 }
 
-figure image {
-    width: 100%;
-}
-
 figure {
     display: flex;
-    /* display: table; */
     flex-flow: column;
     padding: 5px;
     margin: auto;
 }
-
+figure image { width: 100%; }
 figcaption {
     display: table-caption;
     caption-side: bottom;
@@ -162,11 +157,11 @@ blockquote {
 }
 
 blockquote p {
-	margin: 0.4em;
+    margin: 0.4em;
 }
 
 blockquote p {
-  display: inline;
+    display: inline;
 }
 
 @media (prefers-color-scheme: dark) {

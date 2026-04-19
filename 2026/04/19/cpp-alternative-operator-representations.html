@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="C++ Alternative Operator Representations" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>Equivalent ways of writing the same tokens.</title>
+</head>
+<body>
+<header>
+<nav class="top-bar">
+<div class="top-bar-logo"><a class="top-bar-link" href="/">pyj's blog</a></div>
+<div class="top-bar-link-group">
+<a class="top-bar-link" href="/">Posts</a>
+<a class="top-bar-link" href="/tags.html">Tags</a>
+<a class="top-bar-link" target="_blank" href="https://github.com/pyjarrett">Github</a>
+</div>
+</div>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="c-alternative-operator-representations">C++ Alternative Operator Representations</h1><p><i>19 April, 2026</i> - <a class="a-no-decorate" href="/tags.html#c"><span class="tag tag-1">#c++</span></a></p>
+<p>C++ often gets written using the symbols <code>&amp;&amp;</code>, <code>||</code> and <code>!</code>.</p>
+<p>Some languages, like Python, instead use <code>and</code>, <code>or</code> and <code>not</code> keywords for boolean operations.  However, you can, in fact use them in C++ for boolean operators.</p>
+<p>C++ allows us to rewrite our &quot;traditional&quot; boolean expressions equivalently using the keyword equivalents.</p>
+<div class="code-block"><span class="kw">if</span> (<span class="sym">!</span>a <span class="sym">&amp;</span><span class="sym">&amp;</span> b <span class="sym">|</span><span class="sym">|</span> (c <span class="sym">&amp;</span><span class="sym">&amp;</span> d))</div>
+<p>is equivalent to</p>
+<div class="code-block"><span class="kw">if</span> (<span class="kw">not</span> a <span class="kw">and</span> b <span class="kw">or</span> (c <span class="kw">and</span> d))</div>
+<p>Whether to use <code>&amp;&amp;</code>, <code>||</code> and <code>!</code> or their equivalent <code>and</code>, <code>or</code>, and <code>not</code> is a stylistic choice.</p>
+<p>That&apos;s super neat!</p>
+<h2 id="why-does-this-work">Why does this work?</h2>
+<p>These are examples of <a href="https://en.cppreference.com/cpp/language/operator_alternative">alternative operator representations</a>, a historical holdover to support character encodings where characters for these operators didn&apos;t exist. While trigraphs were removed in C++17, alternative tokens are still available. In C, these are macros brought in by including <code>&lt;iso646.h&gt;</code>, but they are built-in keywords in C++.  There are a few more than I&apos;ve mentioned, but they can be used similarly.</p>
+<p>You can use an alternative operator wherever its standard token equivalent can appear in source code.  However, for alternative tokens like <code>and</code>, this means that you can use it to replace <code>&amp;&amp;</code> when describing rvalue references.</p>
+<p>Please don&apos;t confuse your coworkers like this:</p>
+<div class="code-block"><span class="cmt">// A less straightforward way to write &quot;Peas&amp;&amp; Carrots&quot;
+</span><span class="ty">void</span> foo(Peas <span class="kw">and</span> Carrots)
+{
+    <span class="cmt">// ...
+</span>}</div>
+<p>You can also use these when declaring structs and classes if you choose.  You can turn obsfucation up to 11 and get something like this:</p>
+<div class="code-block"><span class="kw">struct</span> Carrots
+<span class="sym">&lt;</span><span class="sym">%</span>
+    <span class="kw">compl</span> Carrots(); <span class="cmt">// destructor
+</span>
+    <span class="cmt">// Copy assignment operator.
+</span>    Carrots <span class="kw">bitand</span> <span class="kw">operator</span><span class="sym">=</span>(<span class="kw">const</span> Carrots <span class="kw">bitand</span> other) <span class="kw">and</span>;
+<span class="sym">%</span><span class="sym">&gt;</span>;</div>
+<p>You can disguise important facts by being cute, like that <code>foo</code> here is only callable on const <i>rvalues</i> (since <code>and</code> replaces the <code>&amp;&amp;</code> rvalue reference qualifier).</p>
+<div class="code-block"><span class="ty">void</span> foo() <span class="kw">const</span> <span class="kw">and</span> final;</div>
+<p>Luckily, these are tokens not characters, so you can&apos;t get away with using them as a piece of another token.</p>
+<div class="code-block"><span class="kw">if</span> (a <span class="kw">not</span> <span class="sym">=</span> b) <span class="cmt">// Won&apos;t compile
+</span>{
+    c <span class="kw">xor</span> <span class="sym">=</span> b; <span class="cmt">// Won&apos;t compile
+</span>}</div>
+<p>The <code>=</code> equivalents have their own <code>_eq</code> prefix versions though.  Curiously, there&apos;s no <code>eq</code> alternative.</p>
+<div class="code-block"><span class="kw">if</span> (a <span class="kw">not_eq</span> b) <span class="cmt">// a != b
+</span>{
+    c <span class="kw">xor_eq</span> b; <span class="cmt">// c ^= b;
+</span>}</div>
+<p>In short, C++ has alternative ways of writing a bunch of operators; this is a fun piece of C++ trivia and history that&apos;s still in the language.</p>
+<p>The boolean keywords could be argued to improve readability, but the important thing is to always write in the clearest and most consistent way with the rest of your team.</p>
+</article></main>
+<footer>
+<p class="centered"><a class="top-bar-link" href="#">Top</a></p>
+</footer>
+</body>
+</html>
