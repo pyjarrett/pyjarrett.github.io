@@ -1,0 +1,191 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>pyj's blog</title>
+<link>https://pyjarrett.github.io/</link>
+<description>Various thoughts on life and software development</description>
+<language>en-us</language>
+<copyright>Copyright (c) 2026, Paul Jarrett</copyright>
+<docs>https://www.rssboard.org/rss-specification</docs>
+<atom:link href="https://pyjarrett.github.io/rss.xml" rel="self" type="application/rss+xml" />
+<item>
+<title>C++ Alternative Operator Representations</title>
+<description>Equivalent ways of writing the same tokens.</description>
+<link>https://pyjarrett.github.io/2026/04/19/cpp-alternative-operator-representations.html</link>
+<guid>https://pyjarrett.github.io/2026/04/19/cpp-alternative-operator-representations.html</guid>
+<pubDate>Sun, 19 Apr 2026 00:00:00 EST</pubDate>
+<category>c++</category>
+</item>
+<item>
+<title>Ada's Super Powered Enums</title>
+<description>A quick look at the power of Ada's enums.</description>
+<link>https://pyjarrett.github.io/2026/03/24/super-powered-enums.html</link>
+<guid>https://pyjarrett.github.io/2026/03/24/super-powered-enums.html</guid>
+<pubDate>Tue, 24 Mar 2026 00:00:00 EST</pubDate>
+<category>ada</category>
+</item>
+<item>
+<title>The First One Will Be Awful</title>
+<description>Fighting the blank page</description>
+<link>https://pyjarrett.github.io/2026/02/10/the-first-one-will-be-awful.html</link>
+<guid>https://pyjarrett.github.io/2026/02/10/the-first-one-will-be-awful.html</guid>
+<pubDate>Tue, 10 Feb 2026 00:00:00 EST</pubDate>
+<category>learning</category>
+</item>
+<item>
+<title>Binding Lua to C++</title>
+<description>Writing compile-time bindings to Lua</description>
+<link>https://pyjarrett.github.io/2026/01/28/binding-lua.html</link>
+<guid>https://pyjarrett.github.io/2026/01/28/binding-lua.html</guid>
+<pubDate>Wed, 28 Jan 2026 00:00:00 EST</pubDate>
+<category>c++</category>
+<category>lua</category>
+</item>
+<item>
+<title>Writing Anteforth, a Forth-like in SPARK</title>
+<description>Writing a verified Forth VM in Ada/SPARK</description>
+<link>https://pyjarrett.github.io/2026/01/13/anteforth.html</link>
+<guid>https://pyjarrett.github.io/2026/01/13/anteforth.html</guid>
+<pubDate>Tue, 13 Jan 2026 00:00:00 EST</pubDate>
+<category>ada</category>
+<category>spark</category>
+<category>forth</category>
+</item>
+<item>
+<title>Inspecting Type and Value Info at C++ Build Time</title>
+<description>Leveraging templates with the compiler and linker to see type and value info</description>
+<link>https://pyjarrett.github.io/2025/08/16/cpp-build-time-info.html</link>
+<guid>https://pyjarrett.github.io/2025/08/16/cpp-build-time-info.html</guid>
+<pubDate>Sat, 16 Aug 2025 00:00:00 EST</pubDate>
+<category>c++</category>
+</item>
+<item>
+<title>File Hashes from Python</title>
+<description>Python's standard library to the rescue</description>
+<link>https://pyjarrett.github.io/2025/07/20/hash-python.html</link>
+<guid>https://pyjarrett.github.io/2025/07/20/hash-python.html</guid>
+<pubDate>Sun, 20 Jul 2025 00:00:00 EST</pubDate>
+<category>python</category>
+</item>
+<item>
+<title>Writing a Verified Postfix Expression Calculator in Ada/SPARK</title>
+<description>A venture in writing a larger SPARK project.</description>
+<link>https://pyjarrett.github.io/2025/06/10/postfix-calculator.html</link>
+<guid>https://pyjarrett.github.io/2025/06/10/postfix-calculator.html</guid>
+<pubDate>Tue, 10 Jun 2025 00:00:00 EST</pubDate>
+<category>ada</category>
+<category>forth</category>
+<category>spark</category>
+</item>
+<item>
+<title>Improv Violin in a Band</title>
+<description>Techniques for playing violin in a band.</description>
+<link>https://pyjarrett.github.io/2025/05/17/improv-violin.html</link>
+<guid>https://pyjarrett.github.io/2025/05/17/improv-violin.html</guid>
+<pubDate>Sat, 17 May 2025 00:00:00 EST</pubDate>
+<category>music</category>
+</item>
+<item>
+<title>Ada on the Raspberry Pi 5</title>
+<description>Building Alire on Raspberry Pi 5</description>
+<link>https://pyjarrett.github.io/2025/04/27/alire-on-raspberry-pi-5.html</link>
+<guid>https://pyjarrett.github.io/2025/04/27/alire-on-raspberry-pi-5.html</guid>
+<pubDate>Sun, 27 Apr 2025 00:00:00 EST</pubDate>
+<category>ada</category>
+</item>
+<item>
+<title>Cole Slaw</title>
+<description>A Southern Dish Ripe with Personality</description>
+<link>https://pyjarrett.github.io/2025/04/24/cole-slaw.html</link>
+<guid>https://pyjarrett.github.io/2025/04/24/cole-slaw.html</guid>
+<pubDate>Thu, 24 Apr 2025 00:00:00 EST</pubDate>
+<category>food</category>
+</item>
+<item>
+<title>Generating Colors for Blog Syntax Highlighting</title>
+<description>A program to automatically create color palettes.</description>
+<link>https://pyjarrett.github.io/2025/04/19/generating-colors.html</link>
+<guid>https://pyjarrett.github.io/2025/04/19/generating-colors.html</guid>
+<pubDate>Sat, 19 Apr 2025 00:00:00 EST</pubDate>
+<category>go</category>
+<category>blog</category>
+</item>
+<item>
+<title>Running my first LLM locally</title>
+<description>Trying out ollama</description>
+<link>https://pyjarrett.github.io/2025/04/17/running-my-first-llm.html</link>
+<guid>https://pyjarrett.github.io/2025/04/17/running-my-first-llm.html</guid>
+<pubDate>Thu, 17 Apr 2025 00:00:00 EST</pubDate>
+<category>llm</category>
+<category>ai</category>
+</item>
+<item>
+<title>The soccer field problem</title>
+<description>A hypothetical interview problem</description>
+<link>https://pyjarrett.github.io/2025/04/16/soccer-field-problem.html</link>
+<guid>https://pyjarrett.github.io/2025/04/16/soccer-field-problem.html</guid>
+<pubDate>Wed, 16 Apr 2025 00:00:00 EST</pubDate>
+</item>
+<item>
+<title>Learning Tests</title>
+<description>Testing libraries when behavior is unclear</description>
+<link>https://pyjarrett.github.io/2025/04/13/learning-tests.html</link>
+<guid>https://pyjarrett.github.io/2025/04/13/learning-tests.html</guid>
+<pubDate>Sun, 13 Apr 2025 00:00:00 EST</pubDate>
+<category>go</category>
+<category>testing</category>
+<category>learning</category>
+</item>
+<item>
+<title>Vim, Markdown, and Unordered List Indentation</title>
+<description>Preventing unordered list indentation in Vim</description>
+<link>https://pyjarrett.github.io/2025/04/09/vim-markdown-and-unordered-list-indentation.html</link>
+<guid>https://pyjarrett.github.io/2025/04/09/vim-markdown-and-unordered-list-indentation.html</guid>
+<pubDate>Wed, 09 Apr 2025 00:00:00 EST</pubDate>
+<category>vim</category>
+</item>
+<item>
+<title>Hello, odin</title>
+<description>Downloading odin and writing simple programs</description>
+<link>https://pyjarrett.github.io/2025/04/04/hello-odin.html</link>
+<guid>https://pyjarrett.github.io/2025/04/04/hello-odin.html</guid>
+<pubDate>Fri, 04 Apr 2025 00:00:00 EST</pubDate>
+<category>stream of consciousness</category>
+<category>odin</category>
+</item>
+<item>
+<title>Me making a blog</title>
+<description>Writing a static site generator and parsing Markdown!</description>
+<link>https://pyjarrett.github.io/2025/03/23/making-a-blog.html</link>
+<guid>https://pyjarrett.github.io/2025/03/23/making-a-blog.html</guid>
+<pubDate>Sun, 23 Mar 2025 00:00:00 EST</pubDate>
+<category>blog</category>
+<category>c++</category>
+</item>
+<item>
+<title>Updating to Windows 11</title>
+<description>Learning about TPMs, MBR, CSM, and GPT to upgrade to Windows 11</description>
+<link>https://pyjarrett.github.io/2025/02/09/updating-to-windows-11.html</link>
+<guid>https://pyjarrett.github.io/2025/02/09/updating-to-windows-11.html</guid>
+<pubDate>Sun, 09 Feb 2025 00:00:00 EST</pubDate>
+<category>windows</category>
+<category>os</category>
+</item>
+<item>
+<title>Summary After Four Months with Ada</title>
+<description>My experience after programming in Ada for four months</description>
+<link>https://pyjarrett.github.io/2021/08/29/four-months-summary.html</link>
+<guid>https://pyjarrett.github.io/2021/08/29/four-months-summary.html</guid>
+<pubDate>Sun, 29 Aug 2021 00:00:00 EST</pubDate>
+<category>ada</category>
+</item>
+<item>
+<title>Ray Tracing in One Weekend... in Ada</title>
+<description>Ray Tracing in One Weekend in Ada</description>
+<link>https://pyjarrett.github.io/2021/06/02/raytracing-in-one-weekend-in-ada.html</link>
+<guid>https://pyjarrett.github.io/2021/06/02/raytracing-in-one-weekend-in-ada.html</guid>
+<pubDate>Wed, 02 Jun 2021 00:00:00 EST</pubDate>
+<category>ada</category>
+</item>
+</channel>
+</rss>
