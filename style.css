@@ -96,6 +96,9 @@ p code, li code {
     border-color: rgb(69, 69, 139);
     border-radius: 15px;
     background-color: rgb(238, 238, 255);
+    display: inline-block;
+    white-space: nowrap;
+
 }
 
 .code-block {
