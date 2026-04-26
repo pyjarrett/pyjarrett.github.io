@@ -140,17 +140,19 @@ p code, li code {
 }
 
 .centered {
-    text-align: center
+    text-align: center;
+    justify-content: center;
 }
 
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; padding-bottom: 20px; font-size: 24px }
-.top-bar-logo { text-align: left; font-weight: bold }
-.top-bar-link { text-decoration: none; }
-.top-bar-link-group { display: flex; gap: 20px; }
+.bar { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; padding-bottom: 20px; font-size: 24px }
+.bar-logo { text-align: left; font-weight: bold }
 
-a.top-bar-link:visited { color: #444; }
-a.top-bar-link:hover { color: #444; }
-a.top-bar-link:active { color: #444; }
+.bar-link-group { display: flex; gap: 20px; }
+
+.bar-link { text-decoration: none; color: #444;}
+a.bar-link:visited { color: #444; }
+a.bar-link:hover { color: #444; }
+a.bar-link:active { color: #444; }
 
 blockquote {
     position: relative;
@@ -173,9 +175,10 @@ blockquote p {
         background-color: rgb(1, 1, 28);
     }
 
-    a.top-bar-link:visited { color: rgb(222, 222, 222); }
-    a.top-bar-link:hover { color: rgb(222, 222, 222); }
-    a.top-bar-link:active { color: rgb(222, 222, 222); }
+    a.bar-link { color: rgb(222, 222, 222); }
+    a.bar-link:visited { color: rgb(222, 222, 222); }
+    a.bar-link:hover { color: rgb(222, 222, 222); }
+    a.bar-link:active { color: rgb(222, 222, 222); }
 
     a { color: #92bdde; }
     a:visited { color: #66cc66; }
