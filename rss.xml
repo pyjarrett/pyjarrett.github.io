@@ -9,6 +9,14 @@
 <docs>https://www.rssboard.org/rss-specification</docs>
 <atom:link href="https://pyjarrett.github.io/rss.xml" rel="self" type="application/rss+xml" />
 <item>
+<title>Marcus Aurelius' Fortress of the Mind</title>
+<description>Thoughts on "Meditations" by the Roman emperor Marcus Aurelius</description>
+<link>https://pyjarrett.github.io/2026/06/14/marcus-aurelius-fortress-of-the-mind.html</link>
+<guid>https://pyjarrett.github.io/2026/06/14/marcus-aurelius-fortress-of-the-mind.html</guid>
+<pubDate>Sun, 14 Jun 2026 00:00:00 EST</pubDate>
+<category>books</category>
+</item>
+<item>
 <title>C++ Alternative Operator Representations</title>
 <description>Equivalent ways of writing the same tokens.</description>
 <link>https://pyjarrett.github.io/2026/04/19/cpp-alternative-operator-representations.html</link>
