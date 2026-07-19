@@ -9,6 +9,14 @@
 <docs>https://www.rssboard.org/rss-specification</docs>
 <atom:link href="https://pyjarrett.github.io/rss.xml" rel="self" type="application/rss+xml" />
 <item>
+<title>Software and AI - Plotting vs. Pantsing</title>
+<description>An alt take on why some like or dislike AI</description>
+<link>https://pyjarrett.github.io/2026/07/18/software-and-ai-plotting-versus-pantsing.html</link>
+<guid>https://pyjarrett.github.io/2026/07/18/software-and-ai-plotting-versus-pantsing.html</guid>
+<pubDate>Sat, 18 Jul 2026 00:00:00 EST</pubDate>
+<category>ai</category>
+</item>
+<item>
 <title>Marcus Aurelius' Fortress of the Mind</title>
 <description>Thoughts on "Meditations" by the Roman emperor Marcus Aurelius</description>
 <link>https://pyjarrett.github.io/2026/06/14/marcus-aurelius-fortress-of-the-mind.html</link>

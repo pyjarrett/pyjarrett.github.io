@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="Software and AI - Plotting vs. Pantsing" /><link rel="icon" href="/images/favicon.png" type="image/png" /><link rel="stylesheet" href="/style.css" /><title>An alt take on why some like or dislike AI</title>
+</head>
+<body>
+<header>
+<nav class="bar">
+<div class="bar-logo"><a class="bar-link" href="/">pyj's blog</a></div>
+<div class="bar-link-group">
+<a class="bar-link" href="/">Posts</a>
+<a class="bar-link" href="/tags.html">Tags</a>
+</div>
+</div>
+</nav>
+</header>
+<main>
+<article>
+<h1 id="software-and-ai---plotting-vs-pantsing">Software and AI - Plotting vs. Pantsing</h1><p><i>18 July, 2026</i> - <a class="a-no-decorate" href="/tags.html#ai"><span class="tag tag-1">#ai</span></a></p>
+<nav>
+<details open>
+<summary>Table of Contents</summary>
+<ul class="outline outline-start" id="outline">
+<ul class="outline">
+<li><a href="#software-plotting-and-pantsing">Software "Plotting" and "Pantsing"</a></li>
+<li><a href="#delegation-versus-assistance">Delegation versus Assistance</a></li>
+<li><a href="#real-life-application">Real Life Application</a></li>
+    <ul class="outline">
+<li><a href="#working-in-existing-code">Working in Existing Code</a></li>
+<li><a href="#green-fields">Green Fields</a></li>
+        </ul>
+<li><a href="#where-to-from-here">Where to, from here?</a></li>
+    </ul>
+</ul>
+</details>
+</nav>
+<hr />
+<p>I&apos;ve been wondering why people seem to love AI for their work, while others hate it. My curiosity revolves around usage of AI in the work itself, ignoring social, economic and environmental concerns. The source of the divide might be how AI affects the way we build understanding of software and problem domains.</p>
+<p>Fiction writing, like software, requires managing many details in a coherent way. There are two styles of fiction writing: plotters (&quot;planners&quot;, &quot;architects&quot;) who work through their ideas ahead of time, and pantsers (&quot;gardeners&quot;) who write by the &quot;seat of their pants.&quot; Authors use both of these at different times but might favor one or the other. To avoid the misinterpretation that people only fit into one category or another, I&apos;ll refer to the behavior of these approaches as &quot;plotting&quot; and &quot;pantsing.&quot;</p>
+<p>Plotting in fiction writing is worldbuilding, writing character guides, and outlining the major story beats and arc before starting to write. Pantsing would be taking a few interesting characters and a setting, and just starting to write, figuring where the story ends up as you go.</p>
+<p>These two approaches seem to mirror some software practices and approaches. My goal isn&apos;t to promote or denigrate either style, but rather to use this as a framework to think about software engineering and how it impacts AI usage.</p>
+<h2 id="software-plotting-and-pantsing">Software &quot;Plotting&quot; and &quot;Pantsing&quot;</h2>
+<p>&quot;Plotting&quot; would be thinking through and developing a solution before any code is written. &quot;Pantsing&quot; would be treating the code as a main artifact and using that to think through the solution.</p>
+<p>It&apos;s not perfect, but plotting emphasizes a top-down analytical form of construction, whereas pantsing focuses on creating from bottom-up synthesis.</p>
+<p>The difference is how code is treated and where understanding lives. In plotting, code is an <i>expression</i> of the design, whereas in pantsing, it <i>is</i> the design.</p>
+<p>For some people like myself, writing the code helps us build our understanding of the problem. Telling someone to have an AI write all the code isn&apos;t &quot;taking away our work,&quot; it&apos;s taking away our understanding. When people talk about AI stealing the joy of their craft, this might be why, which would explain some of the divide in AI adoption.</p>
+<h2 id="delegation-versus-assistance">Delegation versus Assistance</h2>
+<p>This seems to explain why AI usage differs in ease and usefulness. AI usage terminology seems quite blurry, so I&apos;ll define what I mean while using the umbrella term &quot;AI&quot; for these systems. The distinction doesn&apos;t split neatly between &quot;agents&quot; and inline editing or chat systems.</p>
+<p>For plotting versus pantsing, the divide would be the autonomy and granularity with which AI updates artifacts. &quot;Delegates&quot; would be an AI which is given a goal and allowed to autonomously perform edits on the work products. &quot;Assistants&quot; would encompass the rest of work in which the human maintains control.</p>
+<p>This would suggest that delegates support plotting, while assistants support pantsing. A delegate goes from high level specifications directly to a shipped product. An assistant collaborates with the human, such as for autocomplete, research, or code review. It&apos;s not important whether these happen with agents or a chat interface, but how their end products get used.</p>
+<p>With definitions set up, how does this apply?</p>
+<h2 id="real-life-application">Real Life Application</h2>
+<p>Initially I thought plotting and pantsing might appeal to specific domains, but it seems to align with different types of work and levels of knowledge of the system.</p>
+<h3 id="working-in-existing-code">Working in Existing Code</h3>
+<p>Many software developers work on projects that they themselves didn&apos;t write. Few programmers write <code>main()</code> and developers tenure on projects tends to be very short. It&apos;s also not uncommon to find a team with no original product authors left, but the business case for the software didn&apos;t leave. In this environment, the only way to learn how the software works might be to read the code and tests. This sounds straightforward, but mature systems surviving evolutionary development often have vestigial constraints and requirements. When dealing with older code, you need to learn the current system state. This gets worse when dealing with millions of lines of code and with intercommunicating and disparate systems, such as microservices created by different teams.</p>
+<p>I&apos;ve been a fresh face on existing codebases many times. There are often portions where human memory or departures result in unmaintained code whose design decisions or desired architecture are lost to time. That weird acronym that makes no sense? Yeah, its meaning is lost to time. For extremely large programs (&gt;1 million lines of code), it&apos;s impossible to maintain a full understanding of the whole system. If you take a software engineer and parachute them into this system, they&apos;re starting from zero and running mostly in pantsing mode. The system is a pile of unknowns.</p>
+<ul>
+    <li>What&apos;s the architecture?</li>
+    <li>How is CI/CD set up?</li>
+    <li>What checks help ensure the project runs correctly?</li>
+    <li>Who depends on this code and how will I know if I broke something?</li>
+</ul>
+<p>Once you&apos;ve developed an understanding of the systems on which you&apos;re assigned, you can plot changes usually in a straightforward way. Some systems have strong conventions, which helps enforce standard data flows and workflows. However, this isn&apos;t true for bespoke software, or in-house expertise, where you need to come up to speed with the vernacular. Coming up to speed often starts with little changes to get familiar with the workflows. Then you expand what you do as your understanding of the workflows expands. Knowledge gets retained and spread through the team as you work on different things.</p>
+<p>In existing systems, constraints often necessitate pantsing until you&apos;re up to speed. New contributors also discover additional constraints or help sharpen the product by codifying unclear design elements they run across. When AI delegates get used for work, little or no shared understanding of the system gets built.</p>
+<p>When I hear &quot;AI isn&apos;t improving efficiency for developers,&quot; this is where my mind goes. If you don&apos;t know the current state of the program, or the current problem itself, it&apos;s difficult to delegate work. Using &quot;delegate&quot; CLI-based AI to go from spec to output doesn&apos;t help with the underlying problem. When you&apos;re lost, the bottleneck to delegation is understanding. You can go into planning mode and then iterate a bunch trying to get an understanding of the systems you touch, but this only informs you on the interface boundary between new changes and existing code.</p>
+<p>In existing code, an &quot;assistant&quot; AI ensures a PR follows code conventions. Autocomplete would recommend using the appropriate internal types and vernacular. An assistant can also help find program areas to look at to get started on a problem, but this augments understanding and doesn&apos;t replace it.</p>
+<h3 id="green-fields">Green Fields</h3>
+<p>Developing a greenfield project provides a completely different experience. Stability falls behind features as the product need might not be complete yet. Codifying understanding of the problem proves less important than demonstrating value.</p>
+<p>A limited runway necessitates speed, which means a subdivision of work. Most problems aren&apos;t solved yet and there are similarly fewer internal constraints needing to be maintained. Entire systems might be tossed out if they prove unusable or the product pivots. Code is an expendable asset in green fields because it provides capability. Code is a liability in brown fields because it constrains.</p>
+<p>Greenfield projects slowly convert into brownfield ones as they age and solidify. Knowledge slowly converts from being only mental through an imperfect filter into code. Some things cannot be expressed directly though, which leads to some loss.</p>
+<p>An AI delegate writing greenfield code is less risky since there are fewer possible conflicts. There&apos;s less code written by others and the authors know why things are being done and the history of the project. You skip the pantsing to learn the product and can jump straight into plotting with little or no code in your way.</p>
+<p>Problems require some sort of expression in code to run on a computer, and an infinite number of programs can produce the same output. There&apos;s a wild difference between knowing how to solve a problem and expressing it in a way which is fast or prevents correctness mistakes. When dealing with an unfamiliar problem, some people, like myself, iterate on various ways of expressing solutions to that problem. Some of these can be clever and useful, like the ideas described in <a href="https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/">Parse, don&apos;t validate</a>. This is pantsing of a different sort, of using code to learn about the problem. It&apos;s a sort of play, a source of joy in programming and how we gain experience. When I hear people describe AI stealing the joy of programming, this removal of &quot;play to learn&quot; is what it means to me. The process produces not just a product, but also knowledge.</p>
+<p>Using an AI to generate a solution removes part of the rationale for this type of work. Inline code generation and research lets you move faster though by reducing obstacles. An assistant for code review though provides backup and additional insights.</p>
+<h2 id="where-to-from-here">Where to, from here?</h2>
+<p>The knowledge of the system exists somewhere, whether in someone&apos;s head, or in a spec or in the code. Plotting maximizes the push of existing mental models into the world. Pantsing extracts mental models from the world and builds experience.</p>
+<p>The critical issue is how AI usage affects the way software engineers think. These styles work together at various times for various reasons. A delegate AI converts existing understanding into code. Assistant AIs help convert documentation and code into understanding.</p>
+<p>Using the wrong AI style can actively detract from the work being done. The important element seems to be using the right form of AI to support the type of development you&apos;re doing right now. Forcing a certain style of AI feels awkward, especially if it comes from someone above you.</p>
+<p>Are you plotting or pantsing right now, and how does AI support that?</p>
+</p>
+</article></main>
+<footer>
+<p class="centered"><a class="bar-link" href="#">Top</a></p>
+<hr />
+<div class="bar-link-group centered">
+<a class="bar-link" href="/">Posts</a>
+<a class="bar-link" href="/tags.html">Tags</a>
+<a class="bar-link" href="/rss.xml">Feed</a>
+<a class="bar-link" target="_blank" href="https://github.com/pyjarrett">GitHub</a>
+</div>
+</footer>
+</body>
+</html>
